@@ -2128,7 +2128,7 @@ function buildFieldCard(label) {
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         <span style="word-break:break-all;">${currentVal}</span>
       </a>
-      <span style="font-size:11px;color:var(--gray-400);">Klik icon kamera untuk ganti foto</span>
+      <span style="font-size:11px;color:var(--gray-400);">Ketuk kartu ini untuk ganti foto</span>
     </div>`;
   } else if (URL_DISPLAY_FIELDS.has(label) && currentVal) {
     valHTML = `<div class="field-val url">
@@ -2328,14 +2328,16 @@ function confirmEdit() {
   closeModal();
   refreshFieldCard(label);
 
-  // Jika yang diedit adalah Kesanggupan (kunjungan pertama),
-  // refresh field Kondisi SR juga agar opsi dropdown-nya ikut berubah,
-  // serta refresh Tgl Kesanggupan agar status locked/unlocked ikut update
-  if (state.sheetMode === 'pertama' && label.toLowerCase() === 'kesanggupan') {
-    // Cari label Kondisi SR yang ada di record saat ini
-    const kondisiKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'kondisi sr');
-    if (kondisiKey) refreshFieldCard(kondisiKey);
-    // Refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
+  // Jika yang diedit adalah Kesanggupan,
+  // refresh field Kondisi SR juga agar opsi dropdown-nya ikut berubah (hanya kunjungan pertama),
+  // serta refresh Tgl Kesanggupan agar status locked/unlocked ikut update (kedua kunjungan)
+  if (label.toLowerCase() === 'kesanggupan') {
+    // Untuk kunjungan pertama: refresh Kondisi SR juga
+    if (state.sheetMode === 'pertama') {
+      const kondisiKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'kondisi sr');
+      if (kondisiKey) refreshFieldCard(kondisiKey);
+    }
+    // Untuk kedua kunjungan: refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
     const tglKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'tgl kesanggupan');
     if (tglKey) refreshFieldCard(tglKey);
   }
