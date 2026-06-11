@@ -1202,11 +1202,10 @@ function isTglKesanggupanLocked(label) {
 }
 
 // Cek apakah field Tanggal Segel/Cabut harus dikunci (readonly)
-// Pada kunjungan pertama: HANYA terbuka jika Kondisi SR = "Segel" atau "Diamankan"
+// Pada kunjungan pertama & kedua: HANYA terbuka jika Kondisi SR = "Segel" atau "Diamankan"
 // Jika belum dipilih, kosong, atau "Belum disegel" maka terkunci
 function isSegelDateLocked(label) {
   if (!isSegelDateField(label)) return false;
-  if (state.sheetMode !== 'pertama') return false;
   const kondisiVal =
     state.edited?.['Kondisi SR'] ??
     state.edited?.['kondisi sr'] ??
@@ -2342,9 +2341,9 @@ function confirmEdit() {
     if (tglKey) refreshFieldCard(tglKey);
   }
 
-  // Jika yang diedit adalah Kondisi SR (kunjungan pertama),
+  // Jika yang diedit adalah Kondisi SR (kunjungan pertama & kedua),
   // refresh Tanggal Segel/Cabut agar status locked/unlocked ikut update
-  if (state.sheetMode === 'pertama' && label.toLowerCase() === 'kondisi sr') {
+  if (label.toLowerCase() === 'kondisi sr') {
     const segelKey = Object.keys(state.record || {}).find(k => isSegelDateField(k));
     if (segelKey) refreshFieldCard(segelKey);
   }
