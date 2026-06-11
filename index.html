@@ -1132,7 +1132,7 @@ const MAX_15DAYS_DATE_FIELDS = new Set([
   'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan'
 ]);
 
-// Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa <= 15 hari
+// Tanggal Segel/Cabut: Max = hari ini, harus dalam bulan yang sama
 const SEGEL_DATE_FIELDS = new Set([
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
@@ -1228,24 +1228,21 @@ function getMax15DaysFromToday() {
 }
 
 function getMaxSegelDate() {
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = lastDay - now.getDate();
-  
-  // Jika sisa hari sampai akhir bulan == 15, max = hari ini
-  // Selain itu, max = akhir bulan
-  if (daysRemaining === 15) {
-    return getTodayISO();
-  } else {
-    // Return last day of month tanpa timezone issue
-    const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const year = lastDayDate.getFullYear();
-    const month = String(lastDayDate.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+  // Rule 1: Maksimal = hari ini (tidak boleh pilih tanggal masa depan)
+  // Rule 2: Harus dalam bulan yang sama (akhir bulan tetap jadi batas atas bulan)
+  // Karena hari ini selalu <= akhir bulan, cukup kembalikan hari ini sebagai max.
+  return getTodayISO();
 }
 
+function getEndOfMonthISO() {
+  // Helper: kembalikan tanggal akhir bulan ini (untuk validasi bulan yang sama)
+  const now = new Date();
+  const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const year = lastDayDate.getFullYear();
+  const month = String(lastDayDate.getMonth() + 1).padStart(2, '0');
+  const day = String(lastDayDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 function getFolderIdForField(label) {
   const key = Object.keys(GDRIVE_FOLDERS).find(k => k.toLowerCase() === label.toLowerCase());
   if (key) return GDRIVE_FOLDERS[key];
@@ -2220,17 +2217,14 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
       hintEl.classList.remove('hidden');
       hintEl.textContent = `Maksimal 15 hari dari hari ini (${today} s/d ${maxDate})`;
     }
-    // Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa hari <= 15
+    // Tanggal Segel/Cabut: Max hari ini DAN harus dalam bulan yang sama
     else if (isSegelDateField(label)) {
-      const maxDate = getMaxSegelDate();
+      const maxDate = getMaxSegelDate();       // = today
+      const endOfMonth = getEndOfMonthISO();   // for hint info only
       inp.max = maxDate;
       const hintEl = document.getElementById('modalHint');
       hintEl.classList.remove('hidden');
-      if (maxDate === today) {
-        hintEl.textContent = `Sisa hari bulan ini <= 15, hanya bisa input hari ini (${today})`;
-      } else {
-        hintEl.textContent = `Maksimal sampai akhir bulan (${today} s/d ${maxDate})`;
-      }
+      hintEl.textContent = `Maksimal hari ini (${today}), harus dalam bulan ini (s/d ${endOfMonth})`;
     }
     
     if (currentVal) {
@@ -2279,22 +2273,17 @@ function confirmEdit() {
     
     // Validasi untuk Tanggal Segel/Cabut
     if (isSegelDateField(label)) {
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-      const daysRemaining = lastDay - today.getDate();
-      
-      if (daysRemaining === 15) {
-        // Jika sisa hari == 15, hanya bisa input hari ini
-        if (selectedDate.toDateString() !== today.toDateString()) {
-          alert(`${label} hanya bisa diisi tanggal hari ini (${getTodayISO()})!`);
-          return;
-        }
-      } else {
-        // Selain itu, harus dalam bulan ini
-        if (selectedDate.getFullYear() !== today.getFullYear() || 
-            selectedDate.getMonth() !== today.getMonth()) {
-          alert(`${label} harus dalam bulan ini!`);
-          return;
-        }
+      // Rule 1: Tidak boleh lebih dari hari ini
+      const todayMidnight = new Date(getTodayISO() + 'T00:00:00');
+      if (selectedDate > todayMidnight) {
+        alert(`${label} tidak boleh lebih dari hari ini (${getTodayISO()})!`);
+        return;
+      }
+      // Rule 2: Harus dalam bulan yang sama
+      if (selectedDate.getFullYear() !== today.getFullYear() ||
+          selectedDate.getMonth() !== today.getMonth()) {
+        alert(`${label} harus dalam bulan ini (maks. ${getEndOfMonthISO()})!`);
+        return;
       }
     }
     
