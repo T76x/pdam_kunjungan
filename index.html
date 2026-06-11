@@ -1228,22 +1228,37 @@ function getMax15DaysFromToday() {
 }
 
 function getMaxSegelDate() {
+  // Max selalu hari ini — tidak boleh pilih tanggal masa depan
+  return getTodayISO();
+}
+
+function getMinSegelDate() {
   const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = lastDay - now.getDate();
-  
-  // Jika sisa hari sampai akhir bulan == 15, max = hari ini
-  // Selain itu, max = akhir bulan
-  if (daysRemaining === 15) {
-    return getTodayISO();
-  } else {
-    // Return last day of month tanpa timezone issue
-    const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const year = lastDayDate.getFullYear();
-    const month = String(lastDayDate.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  // Jika hari ini tanggal 1 → min = 3 hari terakhir bulan lalu
+  if (now.getDate() === 1) {
+    // Ambil tanggal terakhir bulan lalu, lalu mundur 2 hari lagi (= 3 hari terakhir)
+    const lastOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0); // hari terakhir bulan lalu
+    const minDate = new Date(lastOfPrevMonth);
+    minDate.setDate(lastOfPrevMonth.getDate() - 2); // 3 hari terakhir = lastDay-2, lastDay-1, lastDay
+    const y = minDate.getFullYear();
+    const m = String(minDate.getMonth() + 1).padStart(2, '0');
+    const d = String(minDate.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
+  // Selain itu → min = tanggal 1 bulan ini
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-01`;
+}
+
+function getEndOfMonthISO() {
+  // Tanggal akhir bulan ini (untuk info hint)
+  const now = new Date();
+  const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const y = lastDayDate.getFullYear();
+  const m = String(lastDayDate.getMonth() + 1).padStart(2, '0');
+  const d = String(lastDayDate.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function getFolderIdForField(label) {
@@ -2220,16 +2235,20 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
       hintEl.classList.remove('hidden');
       hintEl.textContent = `Maksimal 15 hari dari hari ini (${today} s/d ${maxDate})`;
     }
-    // Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa hari <= 15
+    // Tanggal Segel/Cabut: Min = tgl 1 bulan ini (atau 3 hari terakhir bulan lalu jika tgl 1),
+    // Max = hari ini
     else if (isSegelDateField(label)) {
-      const maxDate = getMaxSegelDate();
+      const minDate = getMinSegelDate();
+      const maxDate = getMaxSegelDate(); // = today
+      inp.min = minDate;
       inp.max = maxDate;
       const hintEl = document.getElementById('modalHint');
       hintEl.classList.remove('hidden');
-      if (maxDate === today) {
-        hintEl.textContent = `Sisa hari bulan ini <= 15, hanya bisa input hari ini (${today})`;
+      const now = new Date();
+      if (now.getDate() === 1) {
+        hintEl.textContent = `Hari ini tgl 1 — boleh pilih 3 hari terakhir bulan lalu (${minDate} s/d ${maxDate})`;
       } else {
-        hintEl.textContent = `Maksimal sampai akhir bulan (${today} s/d ${maxDate})`;
+        hintEl.textContent = `Pilih tanggal di bulan ini, maksimal hari ini (${minDate} s/d ${maxDate})`;
       }
     }
     
@@ -2279,22 +2298,23 @@ function confirmEdit() {
     
     // Validasi untuk Tanggal Segel/Cabut
     if (isSegelDateField(label)) {
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-      const daysRemaining = lastDay - today.getDate();
-      
-      if (daysRemaining === 15) {
-        // Jika sisa hari == 15, hanya bisa input hari ini
-        if (selectedDate.toDateString() !== today.toDateString()) {
-          alert(`${label} hanya bisa diisi tanggal hari ini (${getTodayISO()})!`);
-          return;
+      const todayMidnight = new Date(getTodayISO() + 'T00:00:00');
+      const minMidnight   = new Date(getMinSegelDate() + 'T00:00:00');
+
+      // Rule 1: Tidak boleh lebih dari hari ini
+      if (selectedDate > todayMidnight) {
+        alert(`${label} tidak boleh lebih dari hari ini (${getTodayISO()})!`);
+        return;
+      }
+      // Rule 2: Tidak boleh sebelum batas minimum
+      if (selectedDate < minMidnight) {
+        const now = new Date();
+        if (now.getDate() === 1) {
+          alert(`${label} minimal 3 hari terakhir bulan lalu (${getMinSegelDate()})!`);
+        } else {
+          alert(`${label} minimal tanggal 1 bulan ini (${getMinSegelDate()})!`);
         }
-      } else {
-        // Selain itu, harus dalam bulan ini
-        if (selectedDate.getFullYear() !== today.getFullYear() || 
-            selectedDate.getMonth() !== today.getMonth()) {
-          alert(`${label} harus dalam bulan ini!`);
-          return;
-        }
+        return;
       }
     }
     
@@ -2308,16 +2328,14 @@ function confirmEdit() {
   closeModal();
   refreshFieldCard(label);
 
-  // Jika yang diedit adalah Kesanggupan (semua jenis kunjungan),
-  // refresh field Kondisi SR juga agar opsi dropdown-nya ikut berubah (khusus pertama),
+  // Jika yang diedit adalah Kesanggupan (kunjungan pertama),
+  // refresh field Kondisi SR juga agar opsi dropdown-nya ikut berubah,
   // serta refresh Tgl Kesanggupan agar status locked/unlocked ikut update
-  if (label.toLowerCase() === 'kesanggupan') {
-    // Kondisi SR dropdown hanya berubah opsi di kunjungan pertama
-    if (state.sheetMode === 'pertama') {
-      const kondisiKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'kondisi sr');
-      if (kondisiKey) refreshFieldCard(kondisiKey);
-    }
-    // Refresh Tgl Kesanggupan berlaku untuk semua kunjungan
+  if (state.sheetMode === 'pertama' && label.toLowerCase() === 'kesanggupan') {
+    // Cari label Kondisi SR yang ada di record saat ini
+    const kondisiKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'kondisi sr');
+    if (kondisiKey) refreshFieldCard(kondisiKey);
+    // Refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
     const tglKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'tgl kesanggupan');
     if (tglKey) refreshFieldCard(tglKey);
   }
