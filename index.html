@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxIktCo4wvSlMeMlKoYFc_VoDMfx7VyeKAMvxwOdSfHQ1AURJ92uGvzVtHpKDauS0Gg/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbylA46V0RYWQ_Mt9yzBjR_r4g6m_kAifXYs_sch49CJ58BNk6CEO-AuEriGIEULmWXh/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1765,20 +1765,6 @@ async function doSearch() {
       data = await apiGet({ action: 'searchIDSR', idsr: query });
     }
 
-    // Jika kunjungan pertama dan status noBilling
-    if (state.sheetMode === 'pertama' && data.status === 'noBilling') {
-      errEl.innerHTML = `
-        <div style="display:flex;gap:10px;align-items:flex-start;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <div>
-            <strong>Pelanggan "No Billing"</strong>
-            <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">Belum ada tagihan di sistem untuk IDSR ini. Silakan hubungi bagian Operasional untuk verifikasi data pelanggan.</p>
-          </div>
-        </div>`;
-      errEl.classList.remove('hidden');
-      return;
-    }
-
     // Jika kunjungan pertama dan status invalid
     if (state.sheetMode === 'pertama' && data.status === 'invalid') {
       errEl.innerHTML = `
@@ -1800,7 +1786,7 @@ async function doSearch() {
 
     state.searchResult = data.record;
     
-    // Pre-fill data dari Looker/k_tarip
+    // Pre-fill data dari Looker
     const recordData = data.record.full || data.record;
     document.getElementById('resIDSR').innerHTML = `
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
@@ -2008,7 +1994,7 @@ async function loadRecord(rowNumber) {
     state.record = data.record;
     state._rowNumber = rowNumber;
     
-    // Pre-fill data dari sheet Looker/k_tarip untuk kunjungan pertama
+    // Pre-fill data dari sheet Looker untuk kunjungan pertama
     if (state.sheetMode === 'pertama' && state.searchResult) {
       const prefillFields = ['IDSR', 'Subunit', 'Wilayah', 'Cater', 'Nama', 'Alamat', 'Blnrek', 'Tag'];
       const recordData = state.searchResult.full || state.searchResult;
