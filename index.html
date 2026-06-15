@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbylA46V0RYWQ_Mt9yzBjR_r4g6m_kAifXYs_sch49CJ58BNk6CEO-AuEriGIEULmWXh/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbz-OiFf1H0fAKEe-bKnDCGi10Ig6gNaqcO3orVL5v8X2DH1TUN9WrLwXu2J2BFgrmpQ/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1765,14 +1765,28 @@ async function doSearch() {
       data = await apiGet({ action: 'searchIDSR', idsr: query });
     }
 
+    // Jika kunjungan pertama dan status sudahLunas
+    if (state.sheetMode === 'pertama' && data.status === 'sudahLunas') {
+      errEl.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>
+            <strong>IDSR Sudah Lunas</strong>
+            <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">IDSR ini sudah lunas. Kunjungan pertama hanya dapat dilakukan untuk pelanggan yang belum lunas.</p>
+          </div>
+        </div>`;
+      errEl.classList.remove('hidden');
+      return;
+    }
+
     // Jika kunjungan pertama dan status invalid
     if (state.sheetMode === 'pertama' && data.status === 'invalid') {
       errEl.innerHTML = `
         <div style="display:flex;gap:10px;align-items:flex-start;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>
-            <strong>IDSR Tidak Ditemukan</strong>
-            <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">Nomor IDSR "${query}" tidak ditemukan di sistem. Silakan periksa kembali nomor IDSR Anda.</p>
+            <strong>Data Tidak Ditemukan</strong>
+            <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">Nomor IDSR "${query}" tidak ditemukan. Silakan periksa kembali nomor IDSR Anda.</p>
           </div>
         </div>`;
       errEl.classList.remove('hidden');
