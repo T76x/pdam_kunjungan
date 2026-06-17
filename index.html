@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbz-OiFf1H0fAKEe-bKnDCGi10Ig6gNaqcO3orVL5v8X2DH1TUN9WrLwXu2J2BFgrmpQ/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbxmBxaeHE_8MFj0D9BWUAo_zSK5aRNNEyc8stOq6AXBwX-QoxZQEGfms4pvTnovtP6F/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1765,17 +1765,71 @@ async function doSearch() {
       data = await apiGet({ action: 'searchIDSR', idsr: query });
     }
 
-    // Jika kunjungan pertama dan status sudahLunas
+    // ── PERBAIKAN #1 & #2: Handle duplicate dan sudahLunas dengan menampilkan result card ──
+    
+    // Kondisi: IDSR duplicate (sudah di Form Responses)
+    if (state.sheetMode === 'pertama' && data.status === 'duplicate') {
+      const recordData = data.record.full || data.record;
+      
+      // Tampilkan result card dengan data dari Looker
+      displaySearchResult(recordData);
+      
+      // Tampilkan warning untuk duplicate
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FEF2F2';
+        warningEl.style.color = '#991B1B';
+        warningEl.style.border = '1px solid #FCA5A5';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>🚫 Data IDSR ini sudah terinput di sistem</strong></span>`;
+        warningEl.classList.remove('hidden');
+      }
+      
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+      
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'duplicate' };
+      
+      resEl.classList.remove('hidden');
+      return;
+    }
+
+    // Kondisi: IDSR sudah lunas (ada TGLBAYAR di Looker)
     if (state.sheetMode === 'pertama' && data.status === 'sudahLunas') {
-      errEl.innerHTML = `
-        <div style="display:flex;gap:10px;align-items:flex-start;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <div>
-            <strong>IDSR Sudah Lunas</strong>
-            <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">IDSR ini sudah lunas. Kunjungan pertama hanya dapat dilakukan untuk pelanggan yang belum lunas.</p>
-          </div>
-        </div>`;
-      errEl.classList.remove('hidden');
+      const recordData = data.record.full || data.record;
+      
+      // Tampilkan result card dengan data dari Looker
+      displaySearchResult(recordData);
+      
+      // Tampilkan TGLBAYAR jika ada
+      const tglbayarVal = recordData['TGLBAYAR'] || recordData['tglbayar'] || '';
+      if (tglbayarVal && tglbayarVal.toString().trim() !== '') {
+        displayTglBayarField(tglbayarVal);
+      }
+      
+      // Tampilkan warning untuk sudah lunas
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FEF3CD';
+        warningEl.style.color = '#856404';
+        warningEl.style.border = '1px solid #FED66C';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>⚠️ IDSR Sudah Lunas</strong> - Kunjungan pertama hanya dapat dilakukan untuk pelanggan yang belum lunas.</span>`;
+        warningEl.classList.remove('hidden');
+      }
+      
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+      
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'sudahLunas' };
+      
+      resEl.classList.remove('hidden');
       return;
     }
 
@@ -1802,45 +1856,7 @@ async function doSearch() {
     
     // Pre-fill data dari Looker
     const recordData = data.record.full || data.record;
-    document.getElementById('resIDSR').innerHTML = `
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
-    document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
-    const subUnitKey = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
-    document.getElementById('resSubUnit').textContent = (subUnitKey ? recordData[subUnitKey] : '') || '—';
-    document.getElementById('resKondisiSR').textContent = recordData['Kondisi SR'] || recordData['kondisiSR'] || '—';
-    
-    // Tampilkan field tambahan untuk kunjungan pertama
-    if (state.sheetMode === 'pertama') {
-      const prefillSection = document.getElementById('prefillSection');
-      if (prefillSection) {
-        prefillSection.innerHTML = `
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
-            <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-              <div>
-                <div style="color:var(--gray-500);margin-bottom:2px;">Wilayah</div>
-                <div style="font-weight:500;color:var(--gray-800);">${recordData['Wilayah'] || recordData['wilayah'] || '—'}</div>
-              </div>
-              <div>
-                <div style="color:var(--gray-500);margin-bottom:2px;">Cater</div>
-                <div style="font-weight:500;color:var(--gray-800);">${recordData['Cater'] || recordData['cater'] || '—'}</div>
-              </div>
-              <div>
-                <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
-                <div style="font-weight:500;color:var(--gray-800);grid-column:1/-1;">${recordData['Alamat'] || recordData['alamat'] || '—'}</div>
-              </div>
-              <div>
-                <div style="color:var(--gray-500);margin-bottom:2px;">Bulan Rekening</div>
-                <div style="font-weight:500;color:var(--gray-800);">${recordData['Blnrek'] || recordData['blnrek'] || '—'}</div>
-              </div>
-              <div>
-                <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
-                <div style="font-weight:500;color:var(--gray-800);">${recordData['Tag'] || recordData['tag'] || '—'}</div>
-              </div>
-            </div>
-          </div>`;
-      }
-    }
+    displaySearchResult(recordData);
     
     // ── Cek kecocokan SubUnit ──────────────────────────────
     const _subUnitKeyMatch = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
@@ -1874,6 +1890,74 @@ async function doSearch() {
   }
 }
 
+// ── Helper functions untuk menampilkan result card ──
+
+function displaySearchResult(recordData) {
+  document.getElementById('resIDSR').innerHTML = `
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
+  document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
+  const subUnitKey = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
+  document.getElementById('resSubUnit').textContent = (subUnitKey ? recordData[subUnitKey] : '') || '—';
+  document.getElementById('resKondisiSR').textContent = recordData['Kondisi SR'] || recordData['kondisiSR'] || '—';
+  
+  // Tampilkan field tambahan untuk kunjungan pertama
+  if (state.sheetMode === 'pertama') {
+    const prefillSection = document.getElementById('prefillSection');
+    if (prefillSection) {
+      prefillSection.innerHTML = `
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
+          <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Wilayah</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Wilayah'] || recordData['wilayah'] || '—'}</div>
+            </div>
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Cater</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Cater'] || recordData['cater'] || '—'}</div>
+            </div>
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
+              <div style="font-weight:500;color:var(--gray-800);grid-column:1/-1;">${recordData['Alamat'] || recordData['alamat'] || '—'}</div>
+            </div>
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Bulan Rekening</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Blnrek'] || recordData['blnrek'] || '—'}</div>
+            </div>
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Tag'] || recordData['tag'] || '—'}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+  }
+}
+
+function displayTglBayarField(tglbayarVal) {
+  // Cari atau buat section untuk TGLBAYAR
+  let tglbayarSection = document.getElementById('tglbayarSection');
+  
+  if (!tglbayarSection) {
+    // Buat section baru jika belum ada
+    tglbayarSection = document.createElement('div');
+    tglbayarSection.id = 'tglbayarSection';
+    tglbayarSection.style.marginTop = '16px';
+    tglbayarSection.style.paddingTop = '16px';
+    tglbayarSection.style.borderTop = '1px solid var(--gray-100)';
+    
+    const prefillSection = document.getElementById('prefillSection');
+    if (prefillSection && prefillSection.parentNode) {
+      prefillSection.parentNode.insertBefore(tglbayarSection, prefillSection.nextSibling);
+    }
+  }
+  
+  tglbayarSection.innerHTML = `
+    <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Tanggal Bayar</div>
+    <div style="font-size:14px;font-weight:500;color:var(--green);">${tglbayarVal}</div>`;
+  tglbayarSection.classList.remove('hidden');
+}
+
 function onTidakSesuai() {
   state.searchResult = null;
   document.getElementById('resultCard').classList.add('hidden');
@@ -1883,6 +1967,21 @@ function onTidakSesuai() {
 
 async function onSesuai() {
   if (!state.searchResult) return;
+  
+  // ── PERBAIKAN #3: Prevent lanjut jika ada warning status (duplicate atau sudahLunas) ──
+  if (state.sheetMode === 'pertama') {
+    const status = state.searchResult.status;
+    
+    // Jika status adalah duplicate, prevent navigation
+    if (status === 'duplicate') {
+      return; // Tidak lanjut ke sheet screen
+    }
+    
+    // Jika status adalah sudahLunas, prevent navigation
+    if (status === 'sudahLunas') {
+      return; // Tidak lanjut ke sheet screen
+    }
+  }
   
   // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan kedua)
   if (state.sheetMode === 'kedua') {
