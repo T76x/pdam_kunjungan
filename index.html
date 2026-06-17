@@ -898,7 +898,7 @@
           </svg>
         </div>
         <div class="visit-option-text">
-          <strong>Kunjungan Ke-2</strong>
+          <strong>Kunjungan Ulang</strong>
           <span>Update data kunjungan lanjutan. Langsung masuk ke pencarian data.</span>
         </div>
       </button>
@@ -1352,7 +1352,7 @@ function selectVisit(mode) {
     document.getElementById('homeSub').textContent = 'Masukkan IDSR pelanggan';
   } else {
     document.getElementById('homeTitle').textContent = 'Cari Data Kunjungan';
-    document.getElementById('homeSub').textContent = 'Masukkan IDSR untuk kunjungan kedua';
+    document.getElementById('homeSub').textContent = 'Masukkan IDSR untuk kunjungan ulang';
   }
 }
 function goBack() {
@@ -1728,7 +1728,7 @@ function updateVisitTypeBadge() {
   const badge = document.getElementById('visitTypeBadge');
   if (badge) {
     const visitType = state.sheetMode || state.visitType || 'kedua';
-    badge.textContent = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ke-2';
+    badge.textContent = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
     badge.style.color = 'white';
   }
 }
@@ -1983,7 +1983,7 @@ async function onSesuai() {
     }
   }
   
-  // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan kedua)
+  // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan ulang)
   if (state.sheetMode === 'kedua') {
     const kondisiSR = state.searchResult.kondisiSR || '';
     const tglBayar = state.searchResult.tglBayar || '';
@@ -2079,7 +2079,7 @@ async function onSesuai() {
     return;
   }
 
-  // Untuk kunjungan kedua: loading record yang sudah ada
+  // Untuk kunjungan ulang: loading record yang sudah ada
   const rowNumber = state.searchResult.rowNumber;
   showScreen('sheet');
   document.getElementById('sheetTitle').textContent = `IDSR ${state.searchResult.idsr ?? ''}`;
@@ -2792,7 +2792,7 @@ function validateBeforeSave() {
     const kesanggupanVal = getVal('kesanggupan').toLowerCase();
     if (kesanggupanVal === 'bersedia') {
       const allKeys = Object.keys(Object.assign({}, rec, edited));
-      const tglKesanggupanKey = allKeys.find(k => isMax14DaysField(k));
+      const tglKesanggupanKey = allKeys.find(k => isMax15DaysField(k));
       if (!tglKesanggupanKey || !getVal(tglKesanggupanKey)) {
         showToast('Tgl Kesanggupan wajib diisi karena Kesanggupan "Bersedia".', 'error');
         return false;
@@ -2811,8 +2811,8 @@ function validateBeforeSave() {
     }
   }
 
-  // ── Poin 1: Kunjungan Kedua — jika Kesanggupan sebelumnya "Belum ketemu", wajib isi Kondisi SR ──
-  if (state.sheetMode === 'kedua') {
+  // ── Poin 1: Kunjungan Ulang — jika Kesanggupan sebelumnya "Belum ketemu", wajib isi Kondisi SR ──
+  if (state.sheetMode === 'ulang') {
     const kesanggupanSebelumnya = (rec['Kesanggupan'] ?? rec['kesanggupan'] ?? '').toString().toLowerCase().trim();
     if (kesanggupanSebelumnya === 'belum ketemu') {
       if (!getVal('kondisi sr')) {
