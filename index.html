@@ -1127,12 +1127,12 @@ const DATE_FIELDS = new Set([
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
 
-// Tgl Kesanggupan: Max 15 hari dari hari ini
-const MAX_15DAYS_DATE_FIELDS = new Set([
+// Tgl Kesanggupan: Max 14 hari dari hari ini
+const MAX_14DAYS_DATE_FIELDS = new Set([
   'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan'
 ]);
 
-// Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa <= 15 hari
+// Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa <= 14 hari
 const SEGEL_DATE_FIELDS = new Set([
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
@@ -1179,8 +1179,8 @@ function isDateField(label) {
   return [...DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
 }
 
-function isMax15DaysField(label) {
-  return [...MAX_15DAYS_DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
+function isMax14DaysField(label) {
+  return [...MAX_14DAYS_DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
 }
 
 function isSegelDateField(label) {
@@ -1190,7 +1190,7 @@ function isSegelDateField(label) {
 // Cek apakah field Tgl Kesanggupan harus dikunci (readonly)
 // berdasarkan nilai Kesanggupan saat ini (edited atau record)
 function isTglKesanggupanLocked(label) {
-  if (!isMax15DaysField(label)) return false;
+  if (!isMax14DaysField(label)) return false;
   const kesanggupanVal =
     state.edited?.['Kesanggupan'] ??
     state.edited?.['kesanggupan'] ??
@@ -1220,9 +1220,9 @@ function getTodayISO() {
   return new Date().toISOString().split('T')[0];
 }
 
-function getMax15DaysFromToday() {
+function getMax14DaysFromToday() {
   const now = new Date();
-  const max = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 15);
+  const max = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
   return max.toISOString().split('T')[0];
 }
 
@@ -2325,13 +2325,13 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
     const today = getTodayISO();
     inp.min = today;
     
-    // Tgl Kesanggupan: Max 15 hari dari hari ini
-    if (isMax15DaysField(label)) {
-      const maxDate = getMax15DaysFromToday();
+    // Tgl Kesanggupan: Max 14 hari dari hari ini
+    if (isMax14DaysField(label)) {
+      const maxDate = getMax14DaysFromToday();
       inp.max = maxDate;
       const hintEl = document.getElementById('modalHint');
       hintEl.classList.remove('hidden');
-      hintEl.textContent = `Maksimal 15 hari dari hari ini (${today} s/d ${maxDate})`;
+      hintEl.textContent = `Maksimal 14 hari dari hari ini (${today} s/d ${maxDate})`;
     }
     // Tanggal Segel/Cabut: Min = tgl 1 bulan ini (atau 3 hari terakhir bulan lalu jika tgl 1),
     // Max = hari ini
@@ -2383,13 +2383,13 @@ function confirmEdit() {
     const selectedDate = new Date(newVal + 'T00:00:00');
     const today = new Date();
     
-    // Validasi untuk Tgl Kesanggupan: Max 15 hari
-    if (isMax15DaysField(label)) {
+    // Validasi untuk Tgl Kesanggupan: Max 14 hari
+    if (isMax14DaysField(label)) {
       const maxDate = new Date(getTodayISO() + 'T00:00:00');
-      maxDate.setDate(maxDate.getDate() + 15);
+      maxDate.setDate(maxDate.getDate() + 14);
       
       if (selectedDate > maxDate) {
-        alert(`${label} maksimal 15 hari dari hari ini!`);
+        alert(`${label} maksimal 14 hari dari hari ini!`);
         return;
       }
     }
