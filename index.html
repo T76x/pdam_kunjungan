@@ -1088,7 +1088,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbzR7g9XvxDKHOFnMB_kx0jHNsrAuRAfLet5Q2nVx9UTrGZXwoDsmWJW60O5vFk6Vfxd/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbxX-3ku9e2rCGxP_z7l5mZi0UtGhlmmU26oXuh36HkCM6a2vcBuWv906aB8rzNwNkwo/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1147,6 +1147,20 @@ const SEGEL_DATE_FIELDS = new Set([
   'tgl_segel_cabut','Tgl_Segel_Cabut','TGL_SEGEL_CABUT'
 ]);
 
+// ── Helper case-insensitive untuk akses field pada object record/edited ──
+// Dipakai agar pencarian field TIDAK bergantung pada case header asli di
+// Looker (mis. "Kesanggupan" vs "KESANGGUPAN" vs "kesanggupan" harus dianggap sama).
+function getFieldCI(obj, key) {
+  if (!obj) return undefined;
+  if (Object.prototype.hasOwnProperty.call(obj, key)) return obj[key];
+  const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+  return foundKey !== undefined ? obj[foundKey] : undefined;
+}
+function hasFieldCI(obj, key) {
+  if (!obj) return false;
+  return Object.keys(obj).some(k => k.toLowerCase() === key.toLowerCase());
+}
+
 function isReadonly(label) {
   return READONLY_FIELDS_EXACT.has(label) ||
     [...READONLY_FIELDS_EXACT].some(f => f.toLowerCase() === label.toLowerCase());
@@ -1166,11 +1180,9 @@ function isDropdown(label) {
     // Ambil nilai Kesanggupan: prioritaskan perubahan pending, lalu data asli
     // Cek dari edited (perubahan pending user) dulu, lalu data asli dari record/searchResult
     const kesanggupanRaw =
-      state.edited?.['Kesanggupan'] ??
-      state.edited?.['kesanggupan'] ??
-      state.record?.['Kesanggupan'] ??
-      state.record?.['kesanggupan'] ??
-      (state.searchResult && (state.searchResult['Kesanggupan'] || state.searchResult['kesanggupan'])) ??
+      getFieldCI(state.edited, 'Kesanggupan') ??
+      getFieldCI(state.record, 'Kesanggupan') ??
+      getFieldCI(state.searchResult, 'Kesanggupan') ??
       '';
     const kesanggupan = kesanggupanRaw.toString().toLowerCase().trim();
 
@@ -1202,10 +1214,8 @@ function isSegelDateField(label) {
 function isTglKesanggupanLocked(label) {
   if (!isMax14DaysField(label)) return false;
   const kesanggupanVal =
-    state.edited?.['Kesanggupan'] ??
-    state.edited?.['kesanggupan'] ??
-    state.record?.['Kesanggupan'] ??
-    state.record?.['kesanggupan'] ??
+    getFieldCI(state.edited, 'Kesanggupan') ??
+    getFieldCI(state.record, 'Kesanggupan') ??
     '';
   const v = kesanggupanVal.toString().toLowerCase().trim();
   return v === 'tidak bersedia' || v === 'belum ketemu';
@@ -1217,10 +1227,8 @@ function isTglKesanggupanLocked(label) {
 function isSegelDateLocked(label) {
   if (!isSegelDateField(label)) return false;
   const kondisiVal =
-    state.edited?.['Kondisi SR'] ??
-    state.edited?.['kondisi sr'] ??
-    state.record?.['Kondisi SR'] ??
-    state.record?.['kondisi sr'] ??
+    getFieldCI(state.edited, 'Kondisi SR') ??
+    getFieldCI(state.record, 'Kondisi SR') ??
     '';
   const v = kondisiVal.toString().toLowerCase().trim();
   return v !== 'segel' && v !== 'diamankan';
@@ -2042,7 +2050,7 @@ async function onSesuai() {
 
       // Bangun state.record untuk consistency
       const rec = { ...recordData, _rowNumber: rowNumberFromLooker };
-      FIELD_CONFIG_PERTAMA.editable.forEach(f => { if (!(f in rec)) rec[f] = ''; });
+      FIELD_CONFIG_PERTAMA.editable.forEach(f => { if (!hasFieldCI(rec, f)) rec[f] = ''; });
       state.record = rec;
 
       const resultCard = document.getElementById('resultCard');
@@ -2051,7 +2059,7 @@ async function onSesuai() {
       showScreen('sheet');
       
       const sheetTitleEl = document.getElementById('sheetTitle');
-      if (sheetTitleEl) sheetTitleEl.textContent = 'IDSR ' + (recordData.IDSR || recordData.idsr || '');
+      if (sheetTitleEl) sheetTitleEl.textContent = 'IDSR ' + (getFieldCI(recordData, 'IDSR') || '');
       
       const changesBanner = document.getElementById('changesBanner');
       if (changesBanner) changesBanner.classList.add('hidden');
@@ -2635,7 +2643,7 @@ async function uploadPhotoToGDrive(label, folderId) {
     const json = await apiPost({
       action:   'uploadPhoto',
       folderId: folderId,
-      fileName: `${state.record['IDSR'] || state.record['idsr'] || state._rowNumber}_${label.replace(/\s+/g,'_')}_${Date.now()}.jpg`,
+      fileName: `${getFieldCI(state.record, 'IDSR') || state._rowNumber}_${label.replace(/\s+/g,'_')}_${Date.now()}.jpg`,
       mimeType: 'image/jpeg',
       data:     base64,
     });
