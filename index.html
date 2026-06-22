@@ -1096,7 +1096,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxAXkrsBAY9NQFhf4bU1eclN29KaH1a_h1cb5rNtp4da-kkATomBa-QIwjmzN3TnIoa/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbwClgrsFXLas2zHMw-VZ4fItaljuJqKgpqaAUE47Fwp_oDYsVNqbNPWCWMHmpviipKJ/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1143,6 +1143,67 @@ const EDITABLE_FIELDS = [
 const HIDDEN_FIELDS = new Set([
   'cekidsr','Score','link','avatar','cinput','nmpegawai'
 ]);
+
+// ──────────────────────────────────────────────────────────────
+// KUNJUNGAN ULANG (v7.5): field tambahan yang disembunyikan HANYA
+// pada Kunjungan Ulang/Kedua (lihat 07_SPEC_KUNJUNGAN_ULANG.md).
+// Cocokkan dengan nama HEADER ASLI di Looker (huruf kecil semua).
+// ──────────────────────────────────────────────────────────────
+const HIDDEN_FIELDS_KEDUA = new Set([
+  'idlevel2', 'rek_awal', 'lbr', 'tarip1', 'angsuran', 'jumlah', 'denda', 'sdhbyr',
+  'thnblnbyr', 'golongan', 'k_tarip', 'idpiutang', 'umur_piutang', 'day_lunas',
+  'pinalti', 'count(pinalti)', 'userid', 'diamankan', 'ststungg', 'ptungg', 'idspi', 'usernamespi',
+]);
+
+// Urutan tampil field yang diinginkan (lihat 07_SPEC_KUNJUNGAN_ULANG.md).
+// PENTING: ini adalah daftar nama KANONIK, BUKAN nama header asli di
+// Looker — karena nama header asli (mis. 'username', 'tgl_input') belum
+// pasti sama dengan label yang diinginkan user (mis. 'ADMIN', 'TIMESTAMP').
+// FIELD_ORDER_ALIASES di bawah memetakan kemungkinan nama header asli
+// ke nama kanonik ini, supaya urutan tetap benar walau nama header
+// berbeda dari label yang ditampilkan.
+// ⚠️ ASUMSI YANG PERLU DIVERIFIKASI: pemetaan 'username' → ADMIN dan
+// 'nmpegawai'/'Cater' → CATER diambil dari komentar di kode .gs &
+// spesifikasi. Jika header asli di sheet Looker berbeda, sesuaikan
+// FIELD_ORDER_ALIASES di bawah.
+const FIELD_DISPLAY_ORDER = [
+  'idsr', 'wilayah', 'subunit', 'nama', 'alamat', 'admin', 'cater', 'timestamp',
+  'email address', 'kesanggupan', 'tgl kesanggupan', 'kondisi sr',
+  'tanggal segel/cabut', 'catatan', 'foto surat', 'foto kunjungan',
+];
+
+// Pemetaan nama header asli (huruf kecil) → nama kanonik di FIELD_DISPLAY_ORDER.
+// Field yang tidak terdaftar di sini otomatis dianggap "nama kanonik = nama
+// header itu sendiri" (lihat getFieldOrderIndex()).
+const FIELD_ORDER_ALIASES = {
+  'username':           'admin',
+  'nmpegawai':           'cater',
+  'cater':               'cater',
+  'tgl_input':           'timestamp',
+  'timestamp':           'timestamp',
+  'sub unit':            'subunit',
+  'sub_unit':            'subunit',
+  'tgl_kesanggupan':     'tgl kesanggupan',
+  'tglkesanggupan':      'tgl kesanggupan',
+  'kondisisr':           'kondisi sr',
+  'tgl segel/cabut':     'tanggal segel/cabut',
+  'tglsegel/cabut':      'tanggal segel/cabut',
+  'tanggal_segel_cabut': 'tanggal segel/cabut',
+  'tgl_segel_cabut':     'tanggal segel/cabut',
+  'fsurat':              'foto surat',
+  'fkunjungan':          'foto kunjungan',
+};
+
+// Cari index urutan tampil untuk sebuah label/field. Field yang tidak
+// dikenal diletakkan di paling belakang (urutan asli/insertion order-nya
+// tetap dipertahankan relatif satu sama lain karena Array.sort stabil
+// di mesin JS modern).
+function getFieldOrderIndex(label) {
+  const lower = (label || '').toString().toLowerCase().trim();
+  const canonical = FIELD_ORDER_ALIASES[lower] || lower;
+  const idx = FIELD_DISPLAY_ORDER.indexOf(canonical);
+  return idx === -1 ? 999 : idx;
+}
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
 const PHOTO_UPLOAD_FIELDS = new Set(['Foto Surat','Foto Kunjungan']);
@@ -1203,7 +1264,18 @@ function isReadonly(label) {
   return !isEditableField(label);
 }
 function isHidden(label) {
-  return [...HIDDEN_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
+  // Field yang selalu disembunyikan (kedua jenis kunjungan)
+  if ([...HIDDEN_FIELDS].some(f => f.toLowerCase() === label.toLowerCase())) {
+    return true;
+  }
+  // Pada Kunjungan Ulang/Kedua, sembunyikan juga HIDDEN_FIELDS_KEDUA
+  const visitMode = state.sheetMode || state.visitType;
+  if (visitMode === 'kedua' || visitMode === 'ulang') {
+    if (HIDDEN_FIELDS_KEDUA.has(label.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
 }
 function isPhotoUpload(label) {
   return [...PHOTO_UPLOAD_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
@@ -1814,6 +1886,8 @@ async function doSearch() {
   const btnTxt = document.getElementById('searchBtnText');
 
   errEl.classList.add('hidden');
+  errEl.classList.remove('alert-warning');
+  errEl.classList.add('alert-error');
   resEl.classList.add('hidden');
   btn.disabled = true;
   btnTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;"></div>';
@@ -1904,6 +1978,20 @@ async function doSearch() {
             <strong>Data Tidak Ditemukan</strong>
             <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">Nomor IDSR "${query}" tidak ditemukan. Silakan periksa kembali nomor IDSR Anda.</p>
           </div>
+        </div>`;
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    // Kunjungan Ulang tapi belum pernah Kunjungan Pertama (kunjungan = 0)
+    if (!data.success && data.requiresFirstVisit) {
+      errEl.classList.remove('alert-error');
+      errEl.classList.add('alert-warning');
+      errEl.innerHTML = `
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path d="M12 9v2m0 4v2m-6-4h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z"/></svg>
+        <div>
+          <strong>Kunjungan Pertama Diperlukan</strong>
+          <p style="margin:4px 0 0 0;font-size:13px;">${data.error}</p>
         </div>`;
       errEl.classList.remove('hidden');
       return;
@@ -2174,7 +2262,9 @@ function renderFields() {
   if (!content) { console.error('[renderFields] sheetContent null'); return; }
   const rec = state.record;
   if (!rec) { console.error('[renderFields] state.record null'); return; }
-  const keys = Object.keys(rec).filter(k => k !== '_rowNumber');
+  const keys = Object.keys(rec)
+    .filter(k => k !== '_rowNumber')
+    .sort((a, b) => getFieldOrderIndex(a) - getFieldOrderIndex(b));
 
   const inner = document.createElement('div');
   inner.className = 'sheet-inner';
