@@ -1022,8 +1022,16 @@
           <div><div class="info-label">SubUnit</div><div class="info-val" id="resSubUnit">—</div></div>
         </div>
         <div class="info-row">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div><div class="info-label">Wilayah</div><div class="info-val" id="resWilayah">—</div></div>
+        </div>
+        <div class="info-row">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
           <div><div class="info-label">Kondisi SR</div><div class="info-val" id="resKondisiSR">—</div></div>
+        </div>
+        <div class="info-row">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+          <div><div class="info-label">Tagihan</div><div class="info-val" id="resTagihan">—</div></div>
         </div>
         <div id="prefillSection"></div>
         <div class="alert alert-warning hidden" id="subunitMismatchAlert" style="background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5;margin-bottom:16px;">
@@ -1122,7 +1130,7 @@ const READONLY_FIELDS_EXACT = new Set([
 ]);
 
 const HIDDEN_FIELDS = new Set([
-  'cekidsr','Score','link','avatar','cinput'
+  'cekidsr','Score','link','avatar','cinput','idlevel2','jumlah','denda_bs','sdhbyr','sdhbayar'
 ]);
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
@@ -1928,15 +1936,32 @@ async function doSearch() {
 
 // ── Helper functions untuk menampilkan result card ──
 
+// Ambil nilai header dari record Looker secara case-insensitive.
+// Sumber data result card v7.4: SELALU dari sheet "Looker" (bukan Form Responses).
+function getLookerField_(recordData, headerName) {
+  if (!recordData) return '';
+  const key = Object.keys(recordData).find(k => k.toLowerCase() === headerName.toLowerCase());
+  const val = key ? recordData[key] : '';
+  return (val === undefined || val === null) ? '' : val;
+}
+
 function displaySearchResult(recordData) {
+  // 1. IDSR ← header "idsr" (sheet Looker)
   document.getElementById('resIDSR').innerHTML = `
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
-  document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
-  const subUnitKey = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
-  document.getElementById('resSubUnit').textContent = (subUnitKey ? recordData[subUnitKey] : '') || '—';
-  document.getElementById('resKondisiSR').textContent = recordData['Kondisi SR'] || recordData['kondisiSR'] || '—';
-  
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${getLookerField_(recordData, 'idsr') || '—'}`;
+  // 2. NAMA ← header "nama" (sheet Looker)
+  document.getElementById('resNama').textContent = getLookerField_(recordData, 'nama') || '—';
+  // 3. SUBUNIT ← header "subunit" (sheet Looker)
+  document.getElementById('resSubUnit').textContent = getLookerField_(recordData, 'subunit') || '—';
+  // 4. WILAYAH ← header "wilayah" (sheet Looker)
+  document.getElementById('resWilayah').textContent = getLookerField_(recordData, 'wilayah') || '—';
+  // 5. KONDISI SR ← header "Kondisi SR" (sheet Looker)
+  document.getElementById('resKondisiSR').textContent = getLookerField_(recordData, 'kondisi sr') || '—';
+  // 6. TAGIHAN ← header "tag" (sheet Looker)
+  document.getElementById('resTagihan').textContent = getLookerField_(recordData, 'tag') || '—';
+
   // Tampilkan field tambahan untuk kunjungan pertama
+  // (Wilayah & Tag sudah ditampilkan di atas, jadi tidak diulang di sini)
   if (state.sheetMode === 'pertama') {
     const prefillSection = document.getElementById('prefillSection');
     if (prefillSection) {
@@ -1945,24 +1970,16 @@ function displaySearchResult(recordData) {
           <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
             <div>
-              <div style="color:var(--gray-500);margin-bottom:2px;">Wilayah</div>
-              <div style="font-weight:500;color:var(--gray-800);">${recordData['Wilayah'] || recordData['wilayah'] || '—'}</div>
-            </div>
-            <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Cater</div>
-              <div style="font-weight:500;color:var(--gray-800);">${recordData['Cater'] || recordData['cater'] || '—'}</div>
-            </div>
-            <div>
-              <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
-              <div style="font-weight:500;color:var(--gray-800);grid-column:1/-1;">${recordData['Alamat'] || recordData['alamat'] || '—'}</div>
+              <div style="font-weight:500;color:var(--gray-800);">${getLookerField_(recordData, 'cater') || '—'}</div>
             </div>
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Bulan Rekening</div>
-              <div style="font-weight:500;color:var(--gray-800);">${recordData['Blnrek'] || recordData['blnrek'] || '—'}</div>
+              <div style="font-weight:500;color:var(--gray-800);">${getLookerField_(recordData, 'blnrek') || '—'}</div>
             </div>
             <div>
-              <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
-              <div style="font-weight:500;color:var(--gray-800);">${recordData['Tag'] || recordData['tag'] || '—'}</div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
+              <div style="font-weight:500;color:var(--gray-800);grid-column:1/-1;">${getLookerField_(recordData, 'alamat') || '—'}</div>
             </div>
           </div>
         </div>`;
