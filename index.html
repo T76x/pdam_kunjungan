@@ -1111,26 +1111,37 @@ const COMPRESS_MAX_WIDTH  = 1280;
 const COMPRESS_MAX_HEIGHT = 1280;
 const COMPRESS_QUALITY    = 0.80;
 
-// Field config (v7.3 — Looker model)
-// Readonly fields: data prefill dari Looker, tidak boleh diubah oleh user
-// NOTE: 'tgl_input' DAN 'Timestamp' sengaja keduanya dimasukkan — backend (.gs)
-// saat ini menulis/membaca timestamp lewat nama kolom 'tgl_input', tapi
-// index_fix.html menyiratkan header asli mungkin sudah berganti jadi 'Timestamp'.
-// Memasukkan keduanya aman (tidak ada efek samping kalau salah satu tidak match)
-// dan mencegah field timestamp tidak sengaja jadi terlihat editable.
-// NOTE 2: Kunjungan Kedua sekarang pakai isEditableField = !isReadonly(label)
-// (sama seperti index_fix.html) — artinya kolom apapun yang TIDAK ada di sini
-// otomatis jadi bisa diedit. Kolom data/admin dari Looker yang bukan urusan
-// kunjungan (nmpegawai, idlevel2, jumlah, denda_bs, sdhbyr) sengaja dikunci
-// di sini supaya tidak bisa tidak sengaja ditimpa oleh user.
-const READONLY_FIELDS_EXACT = new Set([
-  'IDSR','cekidsr','Email Address','Wilayah','Subunit','Cater','Nama','Alamat','Blnrek','Tag',
-  'link','avatar','cinput','Score','tgl_input','Timestamp','tglbayar',
-  'nmpegawai','idlevel2','jumlah','denda_bs','sdhbyr','sdhbayar'
-]);
+// ============================================================
+// FIELD CONFIG (v7.4 — Looker model)
+// Harus selalu SINKRON dengan definisi di backend (.gs):
+//   - EDITABLE_FIELDS : field yang bisa diedit pada KEDUA jenis kunjungan
+//   - PREFILL_FIELDS  : IDSR, Subunit, Wilayah, Email Address,
+//                        Cater (← header nmpegawai), Nama, Alamat, Blnrek, Tag
+//     → semuanya read-only di screen edit (lihat isReadonly() di bawah).
+// ============================================================
 
+// SATU-SATUNYA sumber kebenaran untuk "field apa yang boleh diedit" —
+// dipakai untuk KEDUA jenis kunjungan (pertama & kedua), harus identik
+// dengan EDITABLE_FIELDS pada backend (.gs). Field apa pun di luar daftar
+// ini — termasuk seluruh PREFILL_FIELDS, kolom Timestamp/tgl_input, dan
+// kolom admin/system Looker lain (kunjungan, idlevel2, jumlah, denda_bs,
+// sdhbyr, dst) — otomatis menjadi READ-ONLY, lihat isReadonly() di bawah.
+const EDITABLE_FIELDS = [
+  'KESANGGUPAN',
+  'TGL KESANGGUPAN',
+  'KONDISI SR',
+  'TANGGAL SEGEL/CABUT',
+  'CATATAN',
+  'FOTO SURAT',
+  'FOTO KUNJUNGAN',
+];
+
+// Field yang disembunyikan TOTAL dari screen edit (tidak ditampilkan sama
+// sekali — beda dengan read-only, yang tetap tampil tapi terkunci).
+// 'nmpegawai' disembunyikan karena nilainya sudah direpresentasikan oleh
+// field "Cater" (PREFILL_FIELDS di .gs), jadi tidak perlu tampil 2x.
 const HIDDEN_FIELDS = new Set([
-  'cekidsr','Score','link','avatar','cinput','idlevel2','jumlah','denda_bs','sdhbyr','sdhbayar'
+  'cekidsr','Score','link','avatar','cinput','nmpegawai'
 ]);
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
@@ -1180,9 +1191,16 @@ function hasFieldCI(obj, key) {
   return Object.keys(obj).some(k => k.toLowerCase() === key.toLowerCase());
 }
 
+// Field bisa diedit ⇔ termasuk EDITABLE_FIELDS — SAMA untuk kunjungan
+// pertama & kedua (harus identik dengan logika allowedFields di backend .gs).
+function isEditableField(label) {
+  return EDITABLE_FIELDS.some(f => f.toLowerCase() === label.toLowerCase());
+}
+// Read-only ⇔ TIDAK termasuk EDITABLE_FIELDS. Otomatis mencakup seluruh
+// PREFILL_FIELDS (IDSR, Subunit, Wilayah, Email Address, Cater, Nama,
+// Alamat, Blnrek, Tag) tanpa perlu didaftar manual satu-satu.
 function isReadonly(label) {
-  return READONLY_FIELDS_EXACT.has(label) ||
-    [...READONLY_FIELDS_EXACT].some(f => f.toLowerCase() === label.toLowerCase());
+  return !isEditableField(label);
 }
 function isHidden(label) {
   return [...HIDDEN_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
@@ -1309,7 +1327,7 @@ function getFolderLabelForField(label) {
 }
 const FIELD_CONFIG_PERTAMA = {
   required: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'FOTO SURAT', 'FOTO KUNJUNGAN'],
-  editable: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN']
+  editable: EDITABLE_FIELDS, // sengaja referensi langsung, bukan duplikat array
 };
 
 // State
@@ -2289,21 +2307,9 @@ function buildFieldCard(label) {
 
 // ────────────────────────────────────────────────────────────
 // FIELD HELPERS
+// (isHidden & isEditableField didefinisikan sekali saja di bagian
+//  FIELD CONFIG di atas — lihat EDITABLE_FIELDS / HIDDEN_FIELDS)
 // ────────────────────────────────────────────────────────────
-function isHidden(label) {
-  return ['rowNumber', '_rowNumber'].includes(label) || 
-         [...HIDDEN_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
-}
-
-
-
-function isEditableField(label) {
-  if (state.sheetMode === 'pertama') {
-    // Gunakan case-insensitive agar 'KESANGGUPAN' cocok dengan 'Kesanggupan' dll.
-    return FIELD_CONFIG_PERTAMA.editable.some(f => f.toLowerCase() === label.toLowerCase());
-  }
-  return !isReadonly(label);
-}
 
 function refreshFieldCard(label) {
   const id = `field-${label.replace(/\s+/g,'_')}`;
