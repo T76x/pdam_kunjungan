@@ -1088,7 +1088,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbzTjLDaIG9RdXLIUI3go3wDxHZhGVSKx7mAIA8ELqEi7g6aGGt1muSe_QMSOtaZcfb0/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbxAXkrsBAY9NQFhf4bU1eclN29KaH1a_h1cb5rNtp4da-kkATomBa-QIwjmzN3TnIoa/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1105,9 +1105,20 @@ const COMPRESS_QUALITY    = 0.80;
 
 // Field config (v7.3 — Looker model)
 // Readonly fields: data prefill dari Looker, tidak boleh diubah oleh user
+// NOTE: 'tgl_input' DAN 'Timestamp' sengaja keduanya dimasukkan — backend (.gs)
+// saat ini menulis/membaca timestamp lewat nama kolom 'tgl_input', tapi
+// index_fix.html menyiratkan header asli mungkin sudah berganti jadi 'Timestamp'.
+// Memasukkan keduanya aman (tidak ada efek samping kalau salah satu tidak match)
+// dan mencegah field timestamp tidak sengaja jadi terlihat editable.
+// NOTE 2: Kunjungan Kedua sekarang pakai isEditableField = !isReadonly(label)
+// (sama seperti index_fix.html) — artinya kolom apapun yang TIDAK ada di sini
+// otomatis jadi bisa diedit. Kolom data/admin dari Looker yang bukan urusan
+// kunjungan (nmpegawai, idlevel2, jumlah, denda_bs, sdhbyr) sengaja dikunci
+// di sini supaya tidak bisa tidak sengaja ditimpa oleh user.
 const READONLY_FIELDS_EXACT = new Set([
   'IDSR','cekidsr','Email Address','Wilayah','Subunit','Cater','Nama','Alamat','Blnrek','Tag',
-  'link','avatar','cinput','Score','tgl_input'
+  'link','avatar','cinput','Score','tgl_input','Timestamp','tglbayar',
+  'nmpegawai','idlevel2','jumlah','denda_bs','sdhbyr','sdhbayar'
 ]);
 
 const HIDDEN_FIELDS = new Set([
@@ -1290,7 +1301,7 @@ function getFolderLabelForField(label) {
 }
 const FIELD_CONFIG_PERTAMA = {
   required: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'FOTO SURAT', 'FOTO KUNJUNGAN'],
-  editable: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN', 'EMAIL ADDRESS']
+  editable: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN']
 };
 
 // State
@@ -2136,7 +2147,8 @@ function renderFields() {
   keys.forEach(label => {
     if (isHidden(label)) return;
     try {
-      if (label.toLowerCase() === 'timestamp') {
+      const l = label.toLowerCase();
+      if (l === 'timestamp' || l === 'tgl_input') {
         inner.appendChild(buildTimestampCard(rec[label] ?? ''));
       } else {
         inner.appendChild(buildFieldCard(label));
@@ -2269,19 +2281,11 @@ function isHidden(label) {
 
 
 function isEditableField(label) {
-  // Model v7.3: Field yang editable didefinisikan oleh yang tidak readonly
-  // dan (untuk Pertama) ada di FIELD_CONFIG_PERTAMA, atau (untuk Kedua) field umum yang editable
-  const isRO = isReadonly(label);
-  if (isRO) return false;
-  
-  // Field editable untuk Kunjungan Pertama
   if (state.sheetMode === 'pertama') {
+    // Gunakan case-insensitive agar 'KESANGGUPAN' cocok dengan 'Kesanggupan' dll.
     return FIELD_CONFIG_PERTAMA.editable.some(f => f.toLowerCase() === label.toLowerCase());
   }
-  
-  // Field editable untuk Kunjungan Kedua — sama seperti Pertama (hanya editable fields yang fix)
-  const editableForSecond = ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN'];
-  return editableForSecond.some(f => f.toLowerCase() === label.toLowerCase());
+  return !isReadonly(label);
 }
 
 function refreshFieldCard(label) {
