@@ -2143,7 +2143,12 @@ async function onSesuai() {
   }
 
   // Untuk kunjungan ulang: loading record yang sudah ada
-  const rowNumber = state.searchResult.rowNumber;
+  // BUG FIX: state.searchResult berasal dari data.record (lihat doSearch),
+  // dan buildRecord() di backend menyimpan baris sebagai '_rowNumber'
+  // (pakai underscore) — BUKAN 'rowNumber'. Membaca '.rowNumber' selalu
+  // menghasilkan undefined, sehingga getRecord gagal dengan
+  // "rowNumber tidak valid."
+  const rowNumber = state.searchResult._rowNumber;
   showScreen('sheet');
   document.getElementById('sheetTitle').textContent = `IDSR ${state.searchResult.idsr ?? ''}`;
   document.getElementById('changesBanner').classList.add('hidden');
