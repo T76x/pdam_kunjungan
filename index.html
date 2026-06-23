@@ -1113,11 +1113,17 @@ const COMPRESS_QUALITY    = 0.80;
 // Field config
 const READONLY_FIELDS_EXACT = new Set([
   'IDSR','cekidsr','Timestamp','Email Address','link','avatar','cinput','Score',
-  'wilayah','subunit','cater','nama','alamat','blnrek','tag','tglbayar'
+  'wilayah','subunit','cater','nama','alamat','blnrek','tag','tglbayar','idlevel2','rek_awal',
+  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','nmpegawai','thnblnbyr','golongan',
+  'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
+  'ststungg','ptungg','idspi','usernamespi'
 ]);
 
 const HIDDEN_FIELDS = new Set([
-  'cekidsr','Score','link','avatar','cinput'
+  'cekidsr','Score','link','avatar','cinput','idlevel2','rek_awal',
+  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','nmpegawai','thnblnbyr','golongan',
+  'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
+  'ststungg','ptungg','idspi','usernamespi'
 ]);
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
