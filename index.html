@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbwClgrsFXLas2zHMw-VZ4fItaljuJqKgpqaAUE47Fwp_oDYsVNqbNPWCWMHmpviipKJ/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbygvhOYL2HNfzuANfJ-6uV9Bo5Oc6z-NKCKvzJsvzucsFApTOg9chqd1gEEbwlJUYBC/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -1114,14 +1114,14 @@ const COMPRESS_QUALITY    = 0.80;
 const READONLY_FIELDS_EXACT = new Set([
   'IDSR','cekidsr','Timestamp','Email Address','link','avatar','cinput','Score',
   'wilayah','subunit','cater','nama','alamat','blnrek','tag','tglbayar','idlevel2','rek_awal',
-  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyr','nmpegawai','thnblnbyr','golongan',
+  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','nmpegawai','thnblnbyr','golongan',
   'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
   'ststungg','ptungg','idspi','usernamespi'
 ]);
 
 const HIDDEN_FIELDS = new Set([
   'cekidsr','Score','link','avatar','cinput','idlevel2','rek_awal',
-  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyr','nmpegawai','thnblnbyr','golongan',
+  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','nmpegawai','thnblnbyr','golongan',
   'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
   'ststungg','ptungg','idspi','usernamespi','userid'
 ]);
@@ -1137,19 +1137,65 @@ const DROPDOWN_FIELDS = {
 };
 
 const DATE_FIELDS = new Set([
-  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan',
+  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan','tgl_kesanggupan','TGL_KESANGGUPAN',
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
 
 // Tgl Kesanggupan: Max 14 hari dari hari ini
 const MAX_14DAYS_DATE_FIELDS = new Set([
-  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan'
+  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan','tgl_kesanggupan','TGL_KESANGGUPAN'
 ]);
 
 // Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa <= 14 hari
 const SEGEL_DATE_FIELDS = new Set([
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
+
+// ────────────────────────────────────────────────────────────
+// TAMPILAN FIELD: URUTAN & LABEL (Screen Sheet/Edit)
+// CATATAN: Ini HANYA mengubah tampilan (urutan & teks label) pada screen
+// Sheet/Edit. Key data asli (yang dipakai untuk simpan/edit/validasi) TIDAK
+// berubah — supaya logika yang sudah ada tetap sama.
+// ────────────────────────────────────────────────────────────
+
+// Label tampilan pengganti. Key di sini = header ASLI di sheet (lowercase).
+// Value = teks yang ditampilkan ke pengguna.
+const FIELD_LABEL_OVERRIDES = {
+  'username': 'Admin',
+};
+
+function getDisplayLabel(label) {
+  const key = label.toString().toLowerCase().trim();
+  return FIELD_LABEL_OVERRIDES[key] || label;
+}
+
+// Urutan tampilan field pada Sheet/Edit — berlaku untuk kunjungan pertama
+// MAUPUN kunjungan ulang. Key di sini = header ASLI di sheet (lowercase,
+// spasi/underscore disamakan oleh normalizeFieldKey()).
+// 'kunjungan' BUKAN kolom di sheet — otomatis ditampilkan sebagai info jenis
+// kunjungan di posisi terakhir (lihat buildKunjunganInfoCard()).
+const FIELD_DISPLAY_ORDER = [
+  'idsr', 'wilayah', 'subunit', 'timestamp', 'email address', 'cater',
+  'username', 'nama', 'alamat', 'blnrek', 'tag', 'tglbayar',
+  'kesanggupan', 'tgl kesanggupan', 'kondisi sr', 'tanggal segel/cabut',
+  'catatan', 'fsurat', 'fkunjungan', 'kunjungan',
+];
+
+function normalizeFieldKey(s) {
+  return s.toString().toLowerCase().replace(/[\s_]+/g, ' ').trim();
+}
+
+// Urutkan keys sesuai FIELD_DISPLAY_ORDER. Field yang tidak ada di daftar
+// (tidak dikenal) tetap ditampilkan, diletakkan setelah field yang dikenal,
+// dengan urutan relatif aslinya dipertahankan (stable sort) — supaya tidak
+// ada field yang hilang/disembunyikan.
+function sortFieldKeysByDisplayOrder(keys) {
+  const orderIndex = (k) => {
+    const idx = FIELD_DISPLAY_ORDER.indexOf(normalizeFieldKey(k));
+    return idx === -1 ? FIELD_DISPLAY_ORDER.length : idx;
+  };
+  return [...keys].sort((a, b) => orderIndex(a) - orderIndex(b));
+}
 
 function isReadonly(label) {
   return READONLY_FIELDS_EXACT.has(label) ||
@@ -1167,16 +1213,7 @@ function isDropdown(label) {
 
   // ── Logika dinamis Kondisi SR hanya untuk Kunjungan Pertama ──
   if (label.toLowerCase() === 'kondisi sr' && state.sheetMode === 'pertama') {
-    // Ambil nilai Kesanggupan: prioritaskan perubahan pending, lalu data asli
-    // Cek dari edited (perubahan pending user) dulu, lalu data asli dari record/searchResult
-    const kesanggupanRaw =
-      state.edited?.['Kesanggupan'] ??
-      state.edited?.['kesanggupan'] ??
-      state.record?.['Kesanggupan'] ??
-      state.record?.['kesanggupan'] ??
-      (state.searchResult && (state.searchResult['Kesanggupan'] || state.searchResult['kesanggupan'])) ??
-      '';
-    const kesanggupan = kesanggupanRaw.toString().toLowerCase().trim();
+    const kesanggupan = getKesanggupanValue();
 
     if (kesanggupan === 'bersedia') {
       // Bersedia → tambahkan opsi 'Belum disegel'
@@ -1190,28 +1227,35 @@ function isDropdown(label) {
   return DROPDOWN_FIELDS[k];
 }
 function isDateField(label) {
-  return [...DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
+  const key = label.toString().trim().toLowerCase().replace(/[\s_]+/g, ' ');
+  return [...DATE_FIELDS].some(f => f.toLowerCase().replace(/[\s_]+/g, ' ') === key);
 }
 
 function isMax14DaysField(label) {
-  return [...MAX_14DAYS_DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
+  const key = label.toString().trim().toLowerCase().replace(/[\s_]+/g, ' ');
+  return [...MAX_14DAYS_DATE_FIELDS].some(f => f.toLowerCase().replace(/[\s_]+/g, ' ') === key);
 }
 
 function isSegelDateField(label) {
-  return [...SEGEL_DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
+  const key = label.toString().trim().toLowerCase().replace(/[\s_]+/g, ' ');
+  return [...SEGEL_DATE_FIELDS].some(f => f.toLowerCase().replace(/[\s_]+/g, ' ') === key);
 }
 
 // Cek apakah field Tgl Kesanggupan harus dikunci (readonly)
 // berdasarkan nilai Kesanggupan saat ini (edited atau record)
+function getKesanggupanValue() {
+  // Cari key Kesanggupan secara case-insensitive dari edited maupun record
+  const findVal = (obj) => {
+    if (!obj) return '';
+    const key = Object.keys(obj).find(k => k.toLowerCase() === 'kesanggupan');
+    return key ? obj[key] : '';
+  };
+  return (findVal(state.edited) || findVal(state.record) || '').toString().toLowerCase().trim();
+}
+
 function isTglKesanggupanLocked(label) {
   if (!isMax14DaysField(label)) return false;
-  const kesanggupanVal =
-    state.edited?.['Kesanggupan'] ??
-    state.edited?.['kesanggupan'] ??
-    state.record?.['Kesanggupan'] ??
-    state.record?.['kesanggupan'] ??
-    '';
-  const v = kesanggupanVal.toString().toLowerCase().trim();
+  const v = getKesanggupanValue();
   return v === 'tidak bersedia' || v === 'belum ketemu';
 }
 
@@ -1220,18 +1264,23 @@ function isTglKesanggupanLocked(label) {
 // Jika belum dipilih, kosong, atau "Belum disegel" maka terkunci
 function isSegelDateLocked(label) {
   if (!isSegelDateField(label)) return false;
-  const kondisiVal =
-    state.edited?.['Kondisi SR'] ??
-    state.edited?.['kondisi sr'] ??
-    state.record?.['Kondisi SR'] ??
-    state.record?.['kondisi sr'] ??
-    '';
+  const findKondisi = (obj) => {
+    if (!obj) return '';
+    const key = Object.keys(obj).find(k => k.toLowerCase() === 'kondisi sr');
+    return key ? obj[key] : '';
+  };
+  const kondisiVal = findKondisi(state.edited) || findKondisi(state.record) || '';
   const v = kondisiVal.toString().toLowerCase().trim();
   return v !== 'segel' && v !== 'diamankan';
 }
 
 function getTodayISO() {
-  return new Date().toISOString().split('T')[0];
+  // Gunakan waktu lokal, bukan UTC — penting untuk timezone Indonesia (UTC+7)
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function getMax14DaysFromToday() {
@@ -2153,7 +2202,8 @@ function renderFields() {
   if (!content) { console.error('[renderFields] sheetContent null'); return; }
   const rec = state.record;
   if (!rec) { console.error('[renderFields] state.record null'); return; }
-  const keys = Object.keys(rec).filter(k => k !== '_rowNumber');
+  const rawKeys = Object.keys(rec).filter(k => k !== '_rowNumber');
+  const keys = sortFieldKeysByDisplayOrder(rawKeys);
 
   const inner = document.createElement('div');
   inner.className = 'sheet-inner';
@@ -2170,6 +2220,14 @@ function renderFields() {
       console.error('[renderFields] Error card label:', label, err);
     }
   });
+
+  // Info jenis kunjungan (Pertama/Ulang) — field tampilan saja, bukan kolom
+  // sheet, selalu tampil paling akhir sesuai urutan yang diminta.
+  try {
+    inner.appendChild(buildKunjunganInfoCard());
+  } catch(err) {
+    console.error('[renderFields] Error kunjungan info card:', err);
+  }
 
   content.innerHTML = '';
   content.appendChild(inner);
@@ -2213,6 +2271,24 @@ function buildTimestampCard(raw) {
       <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       Tanggal & waktu ditambahkan otomatis setiap kali data disimpan.
     </div>`;
+  return div;
+}
+
+// Kartu info "Kunjungan" — field tampilan saja (read-only), menampilkan
+// jenis kunjungan saat ini (Pertama/Ulang). Tidak tersimpan ke state.edited
+// dan tidak dikirim ke server — murni informasi untuk pengguna.
+function buildKunjunganInfoCard() {
+  const visitType = state.sheetMode || state.visitType || 'kedua';
+  const text = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
+  const div = document.createElement('div');
+  div.className = 'field-card';
+  div.id = 'field-Kunjungan';
+  div.innerHTML = `
+    <div class="field-header">
+      <span class="field-label gray">Kunjungan</span>
+      <span class="tag tag-gray">INFO</span>
+    </div>
+    <div class="field-row"><div class="field-val readonly">${text}</div></div>`;
   return div;
 }
 
@@ -2267,7 +2343,7 @@ function buildFieldCard(label) {
   div.id = `field-${label.replace(/\s+/g,'_')}`;
   div.innerHTML = `
     <div class="field-header">
-      <span class="field-label ${readonly?'gray':'blue'}">${label}</span>
+      <span class="field-label ${readonly?'gray':'blue'}">${getDisplayLabel(label)}</span>
       ${tagHTML}
     </div>
     <div class="field-row">${valHTML}${editIcon}</div>`;
@@ -2312,7 +2388,7 @@ function refreshFieldCard(label) {
 // ────────────────────────────────────────────────────────────
 function openEditModal(label, currentVal, dropdownOpts, isDate) {
   state.modalField = label;
-  document.getElementById('modalTitle').textContent = `Edit: ${label}`;
+  document.getElementById('modalTitle').textContent = `Edit: ${getDisplayLabel(label)}`;
   document.getElementById('modalHint').classList.add('hidden');
 
   const area = document.getElementById('modalInputArea');
@@ -2345,7 +2421,7 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
       inp.max = maxDate;
       const hintEl = document.getElementById('modalHint');
       hintEl.classList.remove('hidden');
-      hintEl.textContent = `Maksimal 14 hari dari hari ini (${today} s/d ${maxDate})`;
+      hintEl.textContent = `Maksimal 14 hari dari hari ini (${isoToDisplay(today)} s/d ${isoToDisplay(maxDate)})`;
     }
     // Tanggal Segel/Cabut: Min = tgl 1 bulan ini (atau 3 hari terakhir bulan lalu jika tgl 1),
     // Max = hari ini
@@ -2358,9 +2434,9 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
       hintEl.classList.remove('hidden');
       const now = new Date();
       if (now.getDate() === 1) {
-        hintEl.textContent = `Hari ini tgl 1 — boleh pilih 3 hari terakhir bulan lalu (${minDate} s/d ${maxDate})`;
+        hintEl.textContent = `Hari ini tgl 1 — boleh pilih 3 hari terakhir bulan lalu (${isoToDisplay(minDate)} s/d ${isoToDisplay(maxDate)})`;
       } else {
-        hintEl.textContent = `Pilih tanggal di bulan ini, maksimal hari ini (${minDate} s/d ${maxDate})`;
+        hintEl.textContent = `Pilih tanggal di bulan ini, maksimal hari ini (${isoToDisplay(minDate)} s/d ${isoToDisplay(maxDate)})`;
       }
     }
     
@@ -2450,7 +2526,7 @@ function confirmEdit() {
       if (kondisiKey) refreshFieldCard(kondisiKey);
     }
     // Untuk kedua kunjungan: refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
-    const tglKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'tgl kesanggupan');
+    const tglKey = Object.keys(state.record || {}).find(k => isMax14DaysField(k));
     if (tglKey) refreshFieldCard(tglKey);
   }
 
@@ -2863,7 +2939,7 @@ function openConfirmChangesModal() {
     const newVal = value || '—';
 
     item.innerHTML = `
-      <div style="font-weight:600;color:var(--blue);margin-bottom:3px;">${field}</div>
+      <div style="font-weight:600;color:var(--blue);margin-bottom:3px;">${getDisplayLabel(field)}</div>
       <div style="color:var(--gray-600);">
         <span style="color:var(--gray-400);">dari:</span> ${oldVal}<br>
         <span style="color:var(--gray-400);">ke:</span> <strong style="color:var(--green)">${newVal}</strong>
@@ -2898,13 +2974,19 @@ async function saveAll() {
   saveTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:white;"></div> Menyimpan...';
 
   try {
+    // ── Ambil info user untuk audit log ──
+    const currentUserEmail = state.user?.userID  || 'unknown';
+    const currentUsername  = state.user?.username || 'unknown';
+
     // ── Kunjungan pertama: record belum ada di server → insert dulu ──
     if (state.sheetMode === 'pertama' && state._rowNumber === null) {
       const prefillData = state._pendingPrefill || {};
       const insertResp = await apiPost({
-        action: 'insertNewRecord',
-        fields: prefillData,
-        visitType: 'pertama',
+        action:     'insertNewRecord',
+        fields:     prefillData,
+        visitType:  'pertama',
+        userEmail:  currentUserEmail,
+        username:   currentUsername,
       });
       if (!insertResp.success) {
         throw new Error(insertResp.error || 'Gagal membuat record baru di server');
@@ -2919,9 +3001,19 @@ async function saveAll() {
     if (state.sheetMode === 'pertama' && state.emailForFirstVisit) {
       fieldsToSave['Email Address'] = state.emailForFirstVisit;
     }
-    
-    const fieldsJson = JSON.stringify(fieldsToSave);
-    await apiGet({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'kedua' });
+
+    // ── Ganti apiGet → apiPost agar aman untuk data panjang/foto ──
+    const updateResp = await apiPost({
+      action:     'updateRecord',
+      rowNumber:  state._rowNumber,
+      fields:     fieldsToSave,
+      visitType:  state.sheetMode || 'kedua',
+      userEmail:  currentUserEmail,
+      username:   currentUsername,
+    });
+    if (!updateResp.success) {
+      throw new Error(updateResp.error || 'Gagal menyimpan data ke server');
+    }
 
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
