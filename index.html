@@ -2320,13 +2320,15 @@ function buildFieldCard(label) {
 
   let valHTML = '';
   if (photoUpload && currentVal) {
-    valHTML = `<div class="field-val" style="display:flex;flex-direction:column;gap:4px;min-width:0;">
-      <a href="${currentVal}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-         style="color:var(--blue);text-decoration:underline;font-size:13px;display:flex;align-items:flex-start;gap:4px;min-width:0;word-break:break-all;">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span style="word-break:break-all;">${currentVal}</span>
-      </a>
-      <span style="font-size:11px;color:var(--gray-400);">Ketuk kartu ini untuk ganti foto</span>
+    valHTML = `<div class="field-val" style="display:flex;flex-direction:column;gap:6px;min-width:0;">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <svg width="13" height="13" fill="none" stroke="#22c55e" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
+        <a href="${currentVal}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+           style="color:var(--blue);text-decoration:underline;font-size:12px;">
+          Lihat foto (GDrive)
+        </a>
+      </div>
+      <span style="font-size:11px;color:var(--gray-400);">Ketuk kartu untuk ganti foto</span>
     </div>`;
   } else if (URL_DISPLAY_FIELDS.has(label) && currentVal) {
     valHTML = `<div class="field-val url">
