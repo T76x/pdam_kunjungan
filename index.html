@@ -2060,6 +2060,8 @@ function displayTglBayarField(tglbayarVal) {
 function onTidakSesuai() {
   state.searchResult = null;
   document.getElementById('resultCard').classList.add('hidden');
+  const tglbayarSection = document.getElementById('tglbayarSection');
+  if (tglbayarSection) tglbayarSection.classList.add('hidden');
   document.getElementById('searchInput').value = '';
   document.getElementById('searchInput').focus();
 }
