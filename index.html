@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxbdgpBOPRNvuKKPF9y8xzLjkl-nZKtUp4Frs8pcNvqnmdu8YfewJv0WklBl3TSQ1Gt/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyg4qOm2ntzY6G4sXLgooM1dFHFk9sUd57PDYSgvsL-Y78ku-fGPmehzzNwmTu7Xx-B/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -1968,7 +1968,12 @@ function displaySearchResult(recordData) {
   document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
   const subUnitKey = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
   document.getElementById('resSubUnit').textContent = (subUnitKey ? recordData[subUnitKey] : '') || '—';
-  document.getElementById('resKondisiSR').textContent = recordData['Kondisi SR'] || recordData['kondisiSR'] || '—';
+  // FIX: sebelumnya hanya cek key 'Kondisi SR' atau 'kondisiSR' (camelCase
+  // tanpa spasi) — keduanya tidak pernah cocok dengan header asli sheet
+  // ('kondisi sr', huruf kecil dengan spasi). Pakai normalizeFieldKey()
+  // (sudah ada di file ini) supaya cocok dengan berbagai variasi penulisan.
+  const kondisiSRKey = Object.keys(recordData).find(k => normalizeFieldKey(k) === 'kondisi sr');
+  document.getElementById('resKondisiSR').textContent = (kondisiSRKey ? recordData[kondisiSRKey] : '') || '—';
   
   // Tampilkan field tambahan untuk kunjungan pertama
   if (state.sheetMode === 'pertama') {
@@ -2081,10 +2086,17 @@ async function onSesuai() {
   }
   
   // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan ulang)
+  // FIX: sebelumnya pakai key camelCase 'kondisiSR'/'tglBayar' yang TIDAK
+  // PERNAH cocok dengan header asli sheet ('kondisi sr' dengan spasi,
+  // 'tglbayar' satu kata) — akibatnya validasi "sudah diamankan" dan
+  // "sudah lunas" di bawah ini SELALU lolos (silent-fail), tidak pernah
+  // benar-benar memblokir apa pun. Diganti pakai normalizeFieldKey().
   if (state.sheetMode === 'kedua') {
-    const kondisiSR = state.searchResult.kondisiSR || '';
-    const tglBayar = state.searchResult.tglBayar || '';
-    
+    const ksrKey = Object.keys(state.searchResult).find(k => normalizeFieldKey(k) === 'kondisi sr');
+    const tglKey = Object.keys(state.searchResult).find(k => normalizeFieldKey(k) === 'tglbayar');
+    const kondisiSR = (ksrKey ? state.searchResult[ksrKey] : '') || '';
+    const tglBayar  = (tglKey ? state.searchResult[tglKey]  : '') || '';
+
     if (kondisiSR.toLowerCase() === 'diamankan') {
       alert('ID tersebut sudah diamankan, Proses dibatalkan');
       onTidakSesuai();
