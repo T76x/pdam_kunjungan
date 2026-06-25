@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbyg4qOm2ntzY6G4sXLgooM1dFHFk9sUd57PDYSgvsL-Y78ku-fGPmehzzNwmTu7Xx-B/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycby1a6r_2AR6iltV3bgDo0lfKeM765GPM6gUk6kHQMMe_eFOmO0hichRRyM5aO__Eo4/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -2235,14 +2235,29 @@ async function loadRecord(rowNumber) {
     
     // Pre-fill data dari sheet Looker untuk kunjungan pertama
     if (state.sheetMode === 'pertama' && state.searchResult) {
-      const prefillFields = ['IDSR', 'Subunit', 'Wilayah', 'Cater', 'Nama', 'Alamat', 'Blnrek', 'Tag'];
+      // FIX v2: Tambah 'Admin' ke daftar prefill
+      const prefillFields = ['IDSR', 'Subunit', 'Wilayah', 'Cater', 'Admin', 'Nama', 'Alamat', 'Blnrek', 'Tag'];
       const recordData = state.searchResult || {};
+      
+      // FIX v2: Map logical field names ke actual column names di sheet
+      const fieldNameMap = {
+        'cater': 'nmpegawai',
+        'admin': 'username',
+      };
       
       prefillFields.forEach(field => {
         const value = recordData[field] || recordData[field.toLowerCase()] || '';
         if (value && !state.edited[field]) {
           state.edited[field] = value;
-          state.record[field] = value;
+          
+          // Determine actual column name (for sheet compatibility)
+          const actualColName = fieldNameMap[field.toLowerCase()] || field;
+          state.record[actualColName] = value;
+          
+          // Also keep logical field name for compatibility
+          if (actualColName !== field) {
+            state.record[field] = value;
+          }
         }
       });
     }
