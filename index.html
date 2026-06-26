@@ -1024,14 +1024,6 @@
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
           <div><div class="info-label">Kondisi SR</div><div class="info-val" id="resKondisiSR">—</div></div>
         </div>
-        <div class="info-row">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <div><div class="info-label">Periode</div><div class="info-val" id="resPeriode">—</div></div>
-        </div>
-        <div class="info-row">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          <div><div class="info-label">Jml Kunjungan</div><div class="info-val" id="resJmlKunjungan">—</div></div>
-        </div>
         <div id="prefillSection"></div>
         <div class="alert alert-warning hidden" id="subunitMismatchAlert" style="background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5;margin-bottom:16px;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1095,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbw7xPCNT7XUztjf6y-wQ-estVF2AY8lQn17bqtd5hcbjIuIz-lXrNd_7ThoOOjxPN0u/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyBgj0uZaIgZ01Gb1-n43MbBTjCRfLM5dsMnYgBpDxRJIkBfdVN95NptoNYJXmY3h3O/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -2016,17 +2008,9 @@ function displaySearchResult(recordData) {
   // (sudah ada di file ini) supaya cocok dengan berbagai variasi penulisan.
   const kondisiSRKey = Object.keys(recordData).find(k => normalizeFieldKey(k) === 'kondisi sr');
   document.getElementById('resKondisiSR').textContent = (kondisiSRKey ? recordData[kondisiSRKey] : '') || '—';
-
-  // Periode diambil dari kolom Looker 'ptungg'
-  const periodeKey = Object.keys(recordData).find(k => normalizeFieldKey(k) === 'ptungg');
-  document.getElementById('resPeriode').textContent = (periodeKey ? recordData[periodeKey] : '') || '—';
-
-  // Jml Kunjungan diambil dari kolom Looker 'Jml_Kunjungan'
-  const jmlKunjunganKey = Object.keys(recordData).find(k => normalizeFieldKey(k) === 'jml kunjungan');
-  document.getElementById('resJmlKunjungan').textContent = (jmlKunjunganKey ? recordData[jmlKunjunganKey] : '') || '—';
   
-  // Tampilkan field tambahan untuk kunjungan pertama
-  if (state.sheetMode === 'pertama') {
+  // Tampilkan "Data dari Sistem" — untuk kunjungan pertama MAUPUN kunjungan ulang
+  {
     const prefillSection = document.getElementById('prefillSection');
     if (prefillSection) {
       // Helper ambil nilai case-insensitive + alias
@@ -2044,6 +2028,8 @@ function displaySearchResult(recordData) {
       const pAlamat  = getV(['Alamat']);
       const pBlnrek  = getV(['Blnrek']);
       const pTag     = getV(['Tag']);
+      const pPeriode = getV(['ptungg']);
+      const pJmlKunjungan = getV(['Jml_Kunjungan', 'jml_kunjungan']);
 
       prefillSection.innerHTML = `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
@@ -2076,6 +2062,14 @@ function displaySearchResult(recordData) {
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
               <div style="font-weight:500;color:var(--gray-800);">${pTag}</div>
+            </div>
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Periode</div>
+              <div style="font-weight:500;color:var(--gray-800);">${pPeriode}</div>
+            </div>
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Jml Kunjungan</div>
+              <div style="font-weight:500;color:var(--gray-800);">${pJmlKunjungan}</div>
             </div>
           </div>
         </div>`;
