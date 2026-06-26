@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbzde16r1eaLX3Oboq7xf3qExcAt2yZ4s-TzJqHWD2AOYPmG3JMuTeFUBpPOyAb0LPEV/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyIVxTRSKrv3n9twysHzrI3-D_zWqv71OXljcSlWsrxv5-ZcwVfXlAkd0MAfhM_Yt9g/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -1460,6 +1460,7 @@ async function apiGet(params) {
   if (state.token) params.token = state.token;
   if (state.userEmail) params.userEmail = state.userEmail;
   if (state.userName) params.username = state.userName;
+  if (state.userSubUnit) params.userSubUnit = state.userSubUnit;
   const url = BASE_URL + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1472,6 +1473,7 @@ async function apiPost(payload) {
   if (state.token) payload.token = state.token;
   if (state.userEmail) payload.userEmail = state.userEmail;
   if (state.userName) payload.username = state.userName;
+  if (state.userSubUnit) payload.userSubUnit = state.userSubUnit;
   const res = await fetch(BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
