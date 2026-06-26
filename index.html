@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycby1a6r_2AR6iltV3bgDo0lfKeM765GPM6gUk6kHQMMe_eFOmO0hichRRyM5aO__Eo4/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyBgj0uZaIgZ01Gb1-n43MbBTjCRfLM5dsMnYgBpDxRJIkBfdVN95NptoNYJXmY3h3O/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -1118,7 +1118,8 @@ const READONLY_FIELDS_EXACT = new Set([
   'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
   'ststungg','ptungg','idspi','usernamespi',
   'username', // Field Admin — tidak boleh diedit
-  'kunjungan', // Readonly — auto-increment oleh server, tidak boleh diedit manual
+  'kunjungan', // Readonly — flag 0/1, tidak boleh diedit manual
+  'Jml_Kunjungan', // Readonly — auto-increment oleh server
 ]);
 
 const HIDDEN_FIELDS = new Set([
@@ -1126,6 +1127,7 @@ const HIDDEN_FIELDS = new Set([
   'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','sdhbyr','thnblnbyr','golongan',
   'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
   'ststungg','ptungg','idspi','usernamespi','userid',
+  'kunjungan', // Disembunyikan — nilai 0/1 tidak perlu ditampilkan ke user
 ]);
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
@@ -1167,6 +1169,7 @@ const FIELD_LABEL_OVERRIDES = {
   'nmpegawai': 'Cater',
   'tgl_input': 'Timestamp',
   'tglinput': 'Timestamp',
+  'jml_kunjungan': 'Jumlah Kunjungan',
 };
 
 function getDisplayLabel(label) {
@@ -1177,13 +1180,13 @@ function getDisplayLabel(label) {
 // Urutan tampilan field pada Sheet/Edit — berlaku untuk kunjungan pertama
 // MAUPUN kunjungan ulang. Key di sini = header ASLI di sheet (lowercase,
 // spasi/underscore disamakan oleh normalizeFieldKey()).
-// 'kunjungan' BUKAN kolom di sheet — otomatis ditampilkan sebagai info jenis
-// kunjungan di posisi terakhir (lihat buildKunjunganInfoCard()).
+// 'kunjungan' disembunyikan (HIDDEN_FIELDS). 'jml_kunjungan' ditampilkan
+// sebagai kartu info di posisi terakhir oleh buildKunjunganInfoCard().
 const FIELD_DISPLAY_ORDER = [
   'idsr', 'wilayah', 'subunit', 'timestamp', 'tgl_input', 'tglinput', 'email address', 'nmpegawai',
   'username', 'nama', 'alamat', 'blnrek', 'tag', 'tglbayar',
   'kesanggupan', 'tgl kesanggupan', 'kondisi sr', 'tanggal segel/cabut',
-  'catatan', 'fsurat', 'fkunjungan', 'kunjungan',
+  'catatan', 'fsurat', 'fkunjungan', 'jml_kunjungan',
 ];
 
 function normalizeFieldKey(s) {
@@ -2333,14 +2336,6 @@ function renderFields() {
     }
   });
 
-  // Info jenis kunjungan (Pertama/Ulang) — field tampilan saja, bukan kolom
-  // sheet, selalu tampil paling akhir sesuai urutan yang diminta.
-  try {
-    inner.appendChild(buildKunjunganInfoCard());
-  } catch(err) {
-    console.error('[renderFields] Error kunjungan info card:', err);
-  }
-
   content.innerHTML = '';
   content.appendChild(inner);
 }
@@ -2386,21 +2381,31 @@ function buildTimestampCard(raw) {
   return div;
 }
 
-// Kartu info "Kunjungan" — field tampilan saja (read-only), menampilkan
-// jenis kunjungan saat ini (Pertama/Ulang). Tidak tersimpan ke state.edited
-// dan tidak dikirim ke server — murni informasi untuk pengguna.
+// Kartu info "Jumlah Kunjungan" — menampilkan nilai kolom Jml_Kunjungan dari sheet
+// (jumlah kunjungan ulang yang pernah dilakukan). Read-only, tidak dikirim ke server.
 function buildKunjunganInfoCard() {
+  // Ambil nilai Jml_Kunjungan dari record (case-insensitive)
+  const jmlKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'jml_kunjungan');
+  const jmlVal = jmlKey ? (state.record[jmlKey] || '0') : '0';
+
+  // Jenis kunjungan saat ini untuk info tambahan
   const visitType = state.sheetMode || state.visitType || 'kedua';
-  const text = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
+  const visitLabel = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
+
   const div = document.createElement('div');
   div.className = 'field-card';
-  div.id = 'field-Kunjungan';
+  div.id = 'field-Jml_Kunjungan';
   div.innerHTML = `
     <div class="field-header">
-      <span class="field-label gray">Kunjungan</span>
+      <span class="field-label gray">Jumlah Kunjungan</span>
       <span class="tag tag-gray">INFO</span>
     </div>
-    <div class="field-row"><div class="field-val readonly">${text}</div></div>`;
+    <div class="field-row">
+      <div class="field-val readonly">
+        ${jmlVal} kali kunjungan ulang
+        <span style="font-size:12px;color:var(--gray-400);margin-left:8px;">(${visitLabel})</span>
+      </div>
+    </div>`;
   return div;
 }
 
@@ -3123,9 +3128,10 @@ async function saveAll() {
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
     }
-    const existing = (state.record['tgl_input'] ?? state.record['Timestamp'] ?? '').toString().trim();
+    // POIN 4: tgl_input sekarang di-overwrite (replace nilai lama), bukan di-concat
     const now = formatNow();
-    state.record['tgl_input'] = existing ? `${existing} | ${now}` : now;
+    state.record['tgl_input'] = now;
+    if (state.record['Timestamp']) state.record['Timestamp'] = now;
     state.edited = {};
 
     showToast('Data berhasil disimpan ke Google Sheets', 'success');
