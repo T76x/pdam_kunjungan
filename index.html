@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbw0_noScJLKsiuF1-XsnsVWMJQWq3uKu5Y5Smo6wT_woeqGMDP9-7a6avn48mpCqHEl/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyBgj0uZaIgZ01Gb1-n43MbBTjCRfLM5dsMnYgBpDxRJIkBfdVN95NptoNYJXmY3h3O/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -2001,6 +2001,7 @@ async function doSearch() {
 // ── Helper functions untuk menampilkan result card ──
 
 function displaySearchResult(recordData) {
+  console.trace('[DEBUG] displaySearchResult dipanggil dengan ptungg=' + (recordData['ptungg'] ?? '(kosong)'));
   document.getElementById('resIDSR').innerHTML = `
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
   document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
