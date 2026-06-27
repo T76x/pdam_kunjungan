@@ -2185,6 +2185,7 @@ async function onSesuai() {
         'Alamat':        getPrefillVal(['Alamat']),
         'Blnrek':        getPrefillVal(['Blnrek']),
         'Tag':           getPrefillVal(['Tag']),
+        'ptungg':        getPrefillVal(['ptungg']),  // FIX v11: sertakan Periode agar tampil di screen Sheet
         'Email Address': state.emailForFirstVisit || '',
       };
 
@@ -2350,6 +2351,72 @@ function renderFields() {
 
   content.innerHTML = '';
   content.appendChild(inner);
+
+  // FIX v11: Render ulang prefillSection di screen Sheet menggunakan state.record,
+  // agar nilai Periode (ptungg) tampil meskipun field ini ada di HIDDEN_FIELDS.
+  // Hanya menimpa innerHTML prefillSection — tidak mengubah logika field lain.
+  const prefillSectionSheet = document.getElementById('prefillSection');
+  if (prefillSectionSheet && rec) {
+    function getVFromRec(keys) {
+      for (const k of keys) {
+        const found = Object.keys(rec).find(rk => rk.toLowerCase() === k.toLowerCase());
+        if (found && rec[found] && rec[found].toString().trim()) return rec[found].toString().trim();
+      }
+      return '—';
+    }
+    const pWilayah2     = getVFromRec(['Wilayah']);
+    const pSubunit2     = getVFromRec(['Subunit']);
+    const pNama2        = getVFromRec(['Nama']);
+    const pCater2       = getVFromRec(['Cater', 'nmpegawai']);
+    const pAlamat2      = getVFromRec(['Alamat']);
+    const pBlnrek2      = getVFromRec(['Blnrek']);
+    const pTag2         = getVFromRec(['Tag']);
+    const pPeriode2     = getVFromRec(['ptungg']);
+    const pJmlKunjungan2 = getVFromRec(['Jml_Kunjungan', 'jml_kunjungan']);
+
+    prefillSectionSheet.innerHTML = `
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
+        <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Wilayah</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pWilayah2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Subunit</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pSubunit2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Nama</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pNama2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Cater</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pCater2}</div>
+          </div>
+          <div style="grid-column:1/-1;">
+            <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pAlamat2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Bulan Rekening</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pBlnrek2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pTag2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Periode</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pPeriode2}</div>
+          </div>
+          <div>
+            <div style="color:var(--gray-500);margin-bottom:2px;">Jml Kunjungan</div>
+            <div style="font-weight:500;color:var(--gray-800);">${pJmlKunjungan2}</div>
+          </div>
+        </div>
+      </div>`;
+  }
 }
 
 function buildTimestampCard(raw) {
