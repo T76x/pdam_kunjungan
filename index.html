@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbyBgj0uZaIgZ01Gb1-n43MbBTjCRfLM5dsMnYgBpDxRJIkBfdVN95NptoNYJXmY3h3O/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbw5sFB4c4fTgFJKS_Gvsv7zLEiVn2qTWu4ppssknDUPEt6B77_Z6vHo3o2Y-krHUWa4/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -1358,6 +1358,7 @@ let state = {
   saving: false,
   sheetMode: null,
   visitType: null,
+  _searching: false, // guard: cegah double search
   modalField: null,
   photoFile: null,
   photoUploadedUrl: null,
@@ -1843,8 +1844,10 @@ function showSubunitMismatchWarning() {
 // ───────────────────────────────────────────────────────────────
 
 async function doSearch() {
+  if (state._searching) return; // cegah double-call
   const query = document.getElementById('searchInput').value.trim();
   if (!query) return;
+  state._searching = true;
   
   const errEl = document.getElementById('searchError');
   const resEl = document.getElementById('resultCard');
@@ -1966,10 +1969,6 @@ async function doSearch() {
       state._pertamaRowNumber = (typeof data.rowNumber === 'number') ? data.rowNumber : null;
     }
 
-    // DEBUG v11: log seluruh recordData untuk verifikasi ptungg diterima
-    console.log('[DEBUG] recordData dari backend:', JSON.stringify(recordData));
-    console.log('[DEBUG] ptungg value:', recordData['ptungg'] ?? recordData['Ptungg'] ?? '(tidak ada key ptungg)');
-
     displaySearchResult(recordData);
     
     // ── Cek kecocokan SubUnit ──────────────────────────────
@@ -1995,13 +1994,13 @@ async function doSearch() {
   } finally {
     btn.disabled = false;
     btnTxt.textContent = 'Cari';
+    state._searching = false;
   }
 }
 
 // ── Helper functions untuk menampilkan result card ──
 
 function displaySearchResult(recordData) {
-  console.trace('[DEBUG] displaySearchResult dipanggil dengan ptungg=' + (recordData['ptungg'] ?? '(kosong)'));
   document.getElementById('resIDSR').innerHTML = `
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
   document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
@@ -2035,9 +2034,6 @@ function displaySearchResult(recordData) {
       const pTag     = getV(['Tag']);
       const pPeriode = getV(['ptungg']);
       const pJmlKunjungan = getV(['Jml_Kunjungan', 'jml_kunjungan']);
-      // DEBUG v11: alert sementara — hapus setelah masalah ditemukan
-      alert('DEBUG ptungg | key ada: ' + ('ptungg' in recordData) + ' | nilai: [' + recordData['ptungg'] + '] | pPeriode: [' + pPeriode + '] | keys: ' + Object.keys(recordData).join(', '));
-
       prefillSection.innerHTML = `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
           <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
