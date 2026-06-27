@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbyBgj0uZaIgZ01Gb1-n43MbBTjCRfLM5dsMnYgBpDxRJIkBfdVN95NptoNYJXmY3h3O/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbw0_noScJLKsiuF1-XsnsVWMJQWq3uKu5Y5Smo6wT_woeqGMDP9-7a6avn48mpCqHEl/exec';
 // NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
 // sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
 // pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
@@ -1966,6 +1966,10 @@ async function doSearch() {
       state._pertamaRowNumber = (typeof data.rowNumber === 'number') ? data.rowNumber : null;
     }
 
+    // DEBUG v11: log seluruh recordData untuk verifikasi ptungg diterima
+    console.log('[DEBUG] recordData dari backend:', JSON.stringify(recordData));
+    console.log('[DEBUG] ptungg value:', recordData['ptungg'] ?? recordData['Ptungg'] ?? '(tidak ada key ptungg)');
+
     displaySearchResult(recordData);
     
     // ── Cek kecocokan SubUnit ──────────────────────────────
@@ -2030,6 +2034,8 @@ function displaySearchResult(recordData) {
       const pTag     = getV(['Tag']);
       const pPeriode = getV(['ptungg']);
       const pJmlKunjungan = getV(['Jml_Kunjungan', 'jml_kunjungan']);
+      // DEBUG v11: alert sementara — hapus setelah masalah ditemukan
+      alert('DEBUG ptungg | key ada: ' + ('ptungg' in recordData) + ' | nilai: [' + recordData['ptungg'] + '] | pPeriode: [' + pPeriode + '] | keys: ' + Object.keys(recordData).join(', '));
 
       prefillSection.innerHTML = `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
