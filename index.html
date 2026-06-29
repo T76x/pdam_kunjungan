@@ -1087,23 +1087,15 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbyl5CgK7e9j-0VMs07mmbE_wXC6PydVx8DHcA8bKrZ7GdFAZ-7ywf89EFn5niNh4h1K/exec';
-// NOTE: 'fsurat'/'fkunjungan' adalah nama HEADER ASLI di sheet — ditambahkan
-// sebagai alias karena label "ramah" (Foto Surat/Foto Kunjungan) tidak
-// pernah cocok dengan key record yang sebenarnya (lihat juga isPhotoUpload,
-// FIELD_CONFIG_PERTAMA, dan validateBeforeSave di bawah).
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbzg2NLHSBxtzfK6EP2P48hM3BMQ01x1eRa-aCnlZtjASj5vBw7sXLOB6Vz7sdq5GxXA/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
-  'fsurat':        '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
-  'fkunjungan':    '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
 };
 
 const GDRIVE_FOLDER_LABELS = {
   'Foto Surat':    'Folder: Foto Surat',
   'Foto Kunjungan': 'Folder: Foto Kunjungan',
-  'fsurat':        'Folder: Foto Surat',
-  'fkunjungan':    'Folder: Foto Kunjungan',
 };
 // ── Compression settings ─────────────────────────────────────
 const COMPRESS_MAX_WIDTH  = 1280;
@@ -1112,26 +1104,16 @@ const COMPRESS_QUALITY    = 0.80;
 
 // Field config
 const READONLY_FIELDS_EXACT = new Set([
-  'IDSR','cekidsr','Timestamp','tgl_input','tglinput','Email Address','link','avatar','cinput','Score',
-  'wilayah','subunit','cater','nama','alamat','blnrek','tag','tglbayar','idlevel2','rek_awal',
-  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','sdhbyr','nmpegawai','thnblnbyr','golongan',
-  'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
-  'ststungg','ptungg','idspi','usernamespi',
-  'username', // Field Admin — tidak boleh diedit
-  'kunjungan', // Readonly — flag 0/1, tidak boleh diedit manual
-  'Jml_Kunjungan', // Readonly — auto-increment oleh server
+  'IDSR','cekidsr','Timestamp','Email Address','link','avatar','cinput','Score',
+  'wilayah','subunit','cater','nama','alamat','blnrek','tag','tglbayar'
 ]);
 
 const HIDDEN_FIELDS = new Set([
-  'cekidsr','Score','link','avatar','cinput','idlevel2','rek_awal',
-  'lbr','tarip1','angsuran','jumlah','denda_bs','sdhbyar','sdhbyr','thnblnbyr','golongan',
-  'k_tarip','idpiutang','umur_piutang','day_lunas','pinalti','count(pinalti)','diamankan',
-  'ststungg','ptungg','idspi','usernamespi','userid',
-  'kunjungan', // Disembunyikan — nilai 0/1 tidak perlu ditampilkan ke user
+  'cekidsr','Score','link','avatar','cinput'
 ]);
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
-const PHOTO_UPLOAD_FIELDS = new Set(['Foto Surat','Foto Kunjungan','fsurat','fkunjungan']);
+const PHOTO_UPLOAD_FIELDS = new Set(['Foto Surat','Foto Kunjungan']);
 
 const DROPDOWN_FIELDS = {
   'kondisi sr': ['Segel', 'Diamankan'],
@@ -1141,69 +1123,19 @@ const DROPDOWN_FIELDS = {
 };
 
 const DATE_FIELDS = new Set([
-  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan','tgl_kesanggupan','TGL_KESANGGUPAN',
+  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan',
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
 
 // Tgl Kesanggupan: Max 14 hari dari hari ini
 const MAX_14DAYS_DATE_FIELDS = new Set([
-  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan','tgl_kesanggupan','TGL_KESANGGUPAN'
+  'tgl kesanggupan','Tgl Kesanggupan','tglkesanggupan'
 ]);
 
 // Tanggal Segel/Cabut: Max akhir bulan, atau hari ini jika sisa <= 14 hari
 const SEGEL_DATE_FIELDS = new Set([
   'tanggal segel/cabut','Tanggal Segel/cabut','tgl segel/cabut','Tgl Segel/cabut','tglsegel/cabut'
 ]);
-
-// ────────────────────────────────────────────────────────────
-// TAMPILAN FIELD: URUTAN & LABEL (Screen Sheet/Edit)
-// CATATAN: Ini HANYA mengubah tampilan (urutan & teks label) pada screen
-// Sheet/Edit. Key data asli (yang dipakai untuk simpan/edit/validasi) TIDAK
-// berubah — supaya logika yang sudah ada tetap sama.
-// ────────────────────────────────────────────────────────────
-
-// Label tampilan pengganti. Key di sini = header ASLI di sheet (lowercase).
-// Value = teks yang ditampilkan ke pengguna.
-const FIELD_LABEL_OVERRIDES = {
-  'username': 'Admin',
-  'nmpegawai': 'Cater',
-  'tgl_input': 'Timestamp',
-  'tglinput': 'Timestamp',
-  'jml_kunjungan': 'Jumlah Kunjungan',
-};
-
-function getDisplayLabel(label) {
-  const key = label.toString().toLowerCase().trim();
-  return FIELD_LABEL_OVERRIDES[key] || label;
-}
-
-// Urutan tampilan field pada Sheet/Edit — berlaku untuk kunjungan pertama
-// MAUPUN kunjungan ulang. Key di sini = header ASLI di sheet (lowercase,
-// spasi/underscore disamakan oleh normalizeFieldKey()).
-// 'kunjungan' disembunyikan (HIDDEN_FIELDS). 'jml_kunjungan' ditampilkan
-// sebagai kartu info di posisi terakhir oleh buildKunjunganInfoCard().
-const FIELD_DISPLAY_ORDER = [
-  'idsr', 'wilayah', 'subunit', 'timestamp', 'tgl_input', 'tglinput', 'email address', 'nmpegawai',
-  'username', 'nama', 'alamat', 'blnrek', 'tag', 'tglbayar',
-  'kesanggupan', 'tgl kesanggupan', 'kondisi sr', 'tanggal segel/cabut',
-  'catatan', 'fsurat', 'fkunjungan', 'jml_kunjungan',
-];
-
-function normalizeFieldKey(s) {
-  return s.toString().toLowerCase().replace(/[\s_]+/g, ' ').trim();
-}
-
-// Urutkan keys sesuai FIELD_DISPLAY_ORDER. Field yang tidak ada di daftar
-// (tidak dikenal) tetap ditampilkan, diletakkan setelah field yang dikenal,
-// dengan urutan relatif aslinya dipertahankan (stable sort) — supaya tidak
-// ada field yang hilang/disembunyikan.
-function sortFieldKeysByDisplayOrder(keys) {
-  const orderIndex = (k) => {
-    const idx = FIELD_DISPLAY_ORDER.indexOf(normalizeFieldKey(k));
-    return idx === -1 ? FIELD_DISPLAY_ORDER.length : idx;
-  };
-  return [...keys].sort((a, b) => orderIndex(a) - orderIndex(b));
-}
 
 function isReadonly(label) {
   return READONLY_FIELDS_EXACT.has(label) ||
@@ -1221,7 +1153,16 @@ function isDropdown(label) {
 
   // ── Logika dinamis Kondisi SR hanya untuk Kunjungan Pertama ──
   if (label.toLowerCase() === 'kondisi sr' && state.sheetMode === 'pertama') {
-    const kesanggupan = getKesanggupanValue();
+    // Ambil nilai Kesanggupan: prioritaskan perubahan pending, lalu data asli
+    // Cek dari edited (perubahan pending user) dulu, lalu data asli dari record/searchResult
+    const kesanggupanRaw =
+      state.edited?.['Kesanggupan'] ??
+      state.edited?.['kesanggupan'] ??
+      state.record?.['Kesanggupan'] ??
+      state.record?.['kesanggupan'] ??
+      (state.searchResult && (state.searchResult['Kesanggupan'] || state.searchResult['kesanggupan'])) ??
+      '';
+    const kesanggupan = kesanggupanRaw.toString().toLowerCase().trim();
 
     if (kesanggupan === 'bersedia') {
       // Bersedia → tambahkan opsi 'Belum disegel'
@@ -1235,35 +1176,28 @@ function isDropdown(label) {
   return DROPDOWN_FIELDS[k];
 }
 function isDateField(label) {
-  const key = label.toString().trim().toLowerCase().replace(/[\s_]+/g, ' ');
-  return [...DATE_FIELDS].some(f => f.toLowerCase().replace(/[\s_]+/g, ' ') === key);
+  return [...DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
 }
 
 function isMax14DaysField(label) {
-  const key = label.toString().trim().toLowerCase().replace(/[\s_]+/g, ' ');
-  return [...MAX_14DAYS_DATE_FIELDS].some(f => f.toLowerCase().replace(/[\s_]+/g, ' ') === key);
+  return [...MAX_14DAYS_DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
 }
 
 function isSegelDateField(label) {
-  const key = label.toString().trim().toLowerCase().replace(/[\s_]+/g, ' ');
-  return [...SEGEL_DATE_FIELDS].some(f => f.toLowerCase().replace(/[\s_]+/g, ' ') === key);
+  return [...SEGEL_DATE_FIELDS].some(f => f.toLowerCase() === label.toLowerCase());
 }
 
 // Cek apakah field Tgl Kesanggupan harus dikunci (readonly)
 // berdasarkan nilai Kesanggupan saat ini (edited atau record)
-function getKesanggupanValue() {
-  // Cari key Kesanggupan secara case-insensitive dari edited maupun record
-  const findVal = (obj) => {
-    if (!obj) return '';
-    const key = Object.keys(obj).find(k => k.toLowerCase() === 'kesanggupan');
-    return key ? obj[key] : '';
-  };
-  return (findVal(state.edited) || findVal(state.record) || '').toString().toLowerCase().trim();
-}
-
 function isTglKesanggupanLocked(label) {
   if (!isMax14DaysField(label)) return false;
-  const v = getKesanggupanValue();
+  const kesanggupanVal =
+    state.edited?.['Kesanggupan'] ??
+    state.edited?.['kesanggupan'] ??
+    state.record?.['Kesanggupan'] ??
+    state.record?.['kesanggupan'] ??
+    '';
+  const v = kesanggupanVal.toString().toLowerCase().trim();
   return v === 'tidak bersedia' || v === 'belum ketemu';
 }
 
@@ -1272,23 +1206,18 @@ function isTglKesanggupanLocked(label) {
 // Jika belum dipilih, kosong, atau "Belum disegel" maka terkunci
 function isSegelDateLocked(label) {
   if (!isSegelDateField(label)) return false;
-  const findKondisi = (obj) => {
-    if (!obj) return '';
-    const key = Object.keys(obj).find(k => k.toLowerCase() === 'kondisi sr');
-    return key ? obj[key] : '';
-  };
-  const kondisiVal = findKondisi(state.edited) || findKondisi(state.record) || '';
+  const kondisiVal =
+    state.edited?.['Kondisi SR'] ??
+    state.edited?.['kondisi sr'] ??
+    state.record?.['Kondisi SR'] ??
+    state.record?.['kondisi sr'] ??
+    '';
   const v = kondisiVal.toString().toLowerCase().trim();
   return v !== 'segel' && v !== 'diamankan';
 }
 
 function getTodayISO() {
-  // Gunakan waktu lokal, bukan UTC — penting untuk timezone Indonesia (UTC+7)
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return new Date().toISOString().split('T')[0];
 }
 
 function getMax14DaysFromToday() {
@@ -1342,8 +1271,8 @@ function getFolderLabelForField(label) {
   return key ? GDRIVE_FOLDER_LABELS[key] : 'Folder: Default';
 }
 const FIELD_CONFIG_PERTAMA = {
-  required: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'FOTO SURAT', 'FOTO KUNJUNGAN', 'FSURAT', 'FKUNJUNGAN'],
-  editable: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN', 'FSURAT', 'FKUNJUNGAN']
+  required: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'FOTO SURAT', 'FOTO KUNJUNGAN'],
+  editable: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN']
 };
 
 // State
@@ -1358,14 +1287,13 @@ let state = {
   saving: false,
   sheetMode: null,
   visitType: null,
-  _searching: false, // guard: cegah double search
   modalField: null,
   photoFile: null,
   photoUploadedUrl: null,
   _rowNumber: null,
   emailForFirstVisit: null,
   emailList: [],  // kept for compatibility
-  _pertamaRowNumber: null, // rowNumber baris Looker yang sudah ada untuk IDSR kunjungan pertama
+  _pendingPrefill: null, // data prefill kunjungan pertama yang belum diunggah ke server
   _googleUser: null,     // cached Google user info within session
 };
 
@@ -1461,7 +1389,6 @@ async function apiGet(params) {
   if (state.token) params.token = state.token;
   if (state.userEmail) params.userEmail = state.userEmail;
   if (state.userName) params.username = state.userName;
-  if (state.userSubUnit) params.userSubUnit = state.userSubUnit;
   const url = BASE_URL + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1474,7 +1401,6 @@ async function apiPost(payload) {
   if (state.token) payload.token = state.token;
   if (state.userEmail) payload.userEmail = state.userEmail;
   if (state.userName) payload.username = state.userName;
-  if (state.userSubUnit) payload.userSubUnit = state.userSubUnit;
   const res = await fetch(BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1552,7 +1478,7 @@ async function doLogin() {
 
 function doLogout() {
   sessionStorage.clear();
-  state = { token:null, userEmail:null, userName:null, userSubUnit:null, searchResult:null, record:null, edited:{}, saving:false, sheetMode:null, visitType:null, modalField:null, photoFile:null, photoUploadedUrl:null, _rowNumber:null, _pertamaRowNumber:null, emailForFirstVisit:null, emailList:[], _googleUser:null };
+  state = { token:null, userEmail:null, userName:null, userSubUnit:null, searchResult:null, record:null, edited:{}, saving:false, sheetMode:null, visitType:null, modalField:null, photoFile:null, photoUploadedUrl:null, _rowNumber:null, emailForFirstVisit:null, emailList:[], _pendingPrefill:null, _googleUser:null };
   document.getElementById('userDropdown').classList.add('hidden');
   toggleClearBtn();
   document.getElementById('searchInput').value = '';
@@ -1816,38 +1742,9 @@ document.addEventListener('click', e => {
 // ────────────────────────────────────────────────────────────
 // SEARCH
 // ────────────────────────────────────────────────────────────
-// ── Helper: cek subunit mismatch antara user dan IDSR ──────────
-// Mengembalikan true jika subunit BERBEDA (mismatch).
-// Jika idsrSubUnit kosong (tidak diketahui), dianggap tidak mismatch.
-function isSubunitMismatch(recordData) {
-  const subUnitKey = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
-  const idsrSubUnit = (subUnitKey ? recordData[subUnitKey] : '').toLowerCase().trim();
-  const userSubUnit = (state.userSubUnit || '').toLowerCase().trim();
-  return idsrSubUnit !== '' && idsrSubUnit !== userSubUnit;
-}
-
-// Tampilkan warning subunit mismatch dan disable tombol Sesuai.
-function showSubunitMismatchWarning() {
-  const warningEl = document.getElementById('subunitMismatchAlert');
-  const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
-  if (warningEl) {
-    warningEl.style.background = '#FEF2F2';
-    warningEl.style.color = '#991B1B';
-    warningEl.style.border = '1px solid #FCA5A5';
-    warningEl.innerHTML = `
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span><strong>🚫 Pelanggan berada di wilayah unit lain.</strong> Silakan Berkoordinasi dengan Unit terkait.</span>`;
-    warningEl.classList.remove('hidden');
-  }
-  if (sesuaiBtn) sesuaiBtn.disabled = true;
-}
-// ───────────────────────────────────────────────────────────────
-
 async function doSearch() {
-  if (state._searching) return; // cegah double-call
   const query = document.getElementById('searchInput').value.trim();
   if (!query) return;
-  state._searching = true;
   
   const errEl = document.getElementById('searchError');
   const resEl = document.getElementById('resultCard');
@@ -1859,10 +1756,6 @@ async function doSearch() {
   btn.disabled = true;
   btnTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;"></div>';
 
-  // Hapus rowNumber pencarian sebelumnya supaya tidak "nyangkut" ke IDSR
-  // yang berbeda kalau pencarian ini gagal/IDSR lain.
-  state._pertamaRowNumber = null;
-
   try {
     // Jika kunjungan pertama, gunakan endpoint khusus
     let data;
@@ -1872,19 +1765,41 @@ async function doSearch() {
       data = await apiGet({ action: 'searchIDSR', idsr: query });
     }
 
-    // ── CATATAN: status 'duplicate' dan 'invalid' tidak pernah dikembalikan oleh backend ──
-    // Backend handleSearchIDSRKunjunganPertama mengembalikan: found:true/false + status:'sudahLunas' (optional)
-    // Dead code untuk 'duplicate' dan 'invalid' dihapus. Lihat dokumentasi §7.4
+    // ── PERBAIKAN #1 & #2: Handle duplicate dan sudahLunas dengan menampilkan result card ──
     
-    // Jika tidak ada error, lanjut proses normal
-    if (!data.success) {
-      throw new Error(data.error || 'Pencarian gagal');
+    // Kondisi: IDSR duplicate (sudah di Form Responses)
+    if (state.sheetMode === 'pertama' && data.status === 'duplicate') {
+      const recordData = data.record.full || data.record;
+      
+      // Tampilkan result card dengan data dari Looker
+      displaySearchResult(recordData);
+      
+      // Tampilkan warning untuk duplicate
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FEF2F2';
+        warningEl.style.color = '#991B1B';
+        warningEl.style.border = '1px solid #FCA5A5';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>🚫 Data IDSR ini sudah terinput di sistem</strong></span>`;
+        warningEl.classList.remove('hidden');
+      }
+      
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+      
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'duplicate' };
+      
+      resEl.classList.remove('hidden');
+      return;
     }
 
-    // Kondisi VALID: IDSR sudah lunas (ada TGLBAYAR atau sdhbyr=1 di Looker)
-    // Result card tetap ditampilkan dengan warning dan tombol "Sesuai" dinonaktifkan
-    if (state.sheetMode === 'pertama' && data.found === true && data.status === 'sudahLunas') {
-      const recordData = data.record || {};
+    // Kondisi: IDSR sudah lunas (ada TGLBAYAR di Looker)
+    if (state.sheetMode === 'pertama' && data.status === 'sudahLunas') {
+      const recordData = data.record.full || data.record;
       
       // Tampilkan result card dengan data dari Looker
       displaySearchResult(recordData);
@@ -1895,93 +1810,71 @@ async function doSearch() {
         displayTglBayarField(tglbayarVal);
       }
       
-      // Cek subunit mismatch — override warning lunas jika unit berbeda
-      if (isSubunitMismatch(recordData)) {
-        showSubunitMismatchWarning();
-      } else {
-        // Tampilkan warning sudah lunas
-        const warningEl = document.getElementById('subunitMismatchAlert');
-        if (warningEl) {
-          warningEl.style.background = '#FEF3CD';
-          warningEl.style.color = '#856404';
-          warningEl.style.border = '1px solid #FED66C';
-          warningEl.innerHTML = `
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>⚠️ IDSR Sudah Lunas</strong> — Kunjungan pertama tidak dapat dilakukan untuk pelanggan yang sudah lunas.</span>`;
-          warningEl.classList.remove('hidden');
-        }
-        // Disable tombol Sesuai
-        const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
-        if (sesuaiBtn) sesuaiBtn.disabled = true;
+      // Tampilkan warning untuk sudah lunas
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FEF3CD';
+        warningEl.style.color = '#856404';
+        warningEl.style.border = '1px solid #FED66C';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>⚠️ IDSR Sudah Lunas</strong> - Kunjungan pertama hanya dapat dilakukan untuk pelanggan yang belum lunas.</span>`;
+        warningEl.classList.remove('hidden');
       }
       
-      state.searchResult = { ...recordData, status: 'sudahLunas' };
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+      
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'sudahLunas' };
+      
       resEl.classList.remove('hidden');
       return;
     }
 
-    // Kunjungan pertama: found:false artinya IDSR sudah pernah dikunjungi
-    // (kunjungan > 0) atau IDSR memang tidak terdaftar sama sekali di Looker.
-    // Tetap tampilkan result card dengan warning dan tombol "Sesuai" dinonaktifkan — 
-    // supaya tidak bisa lanjut ke screen sheet/edit, karena tidak ada baris valid untuk
-    // diedit (itu yang sebelumnya memicu insertNewRecord padahal barisnya
-    // sudah ada / tidak valid).
-    if (state.sheetMode === 'pertama' && data.found === false) {
-      const recordData = data.record || data.prefill || {};
-      displaySearchResult(recordData);
-
-      // Cek subunit mismatch — override warning lain jika unit berbeda
-      if (isSubunitMismatch(recordData)) {
-        showSubunitMismatchWarning();
-      } else {
-        const warningEl = document.getElementById('subunitMismatchAlert');
-        if (warningEl) {
-          warningEl.style.background = '#FEF2F2';
-          warningEl.style.color = '#991B1B';
-          warningEl.style.border = '1px solid #FCA5A5';
-          warningEl.innerHTML = `
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>🚫 ${data.error || 'IDSR tidak bisa diproses untuk kunjungan pertama.'}</strong></span>`;
-          warningEl.classList.remove('hidden');
-        }
-        const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
-        if (sesuaiBtn) sesuaiBtn.disabled = true;
-      }
-
-      state.searchResult = { ...recordData, status: 'tidakBisaKunjunganPertama' };
-      resEl.classList.remove('hidden');
+    // Jika kunjungan pertama dan status invalid
+    if (state.sheetMode === 'pertama' && data.status === 'invalid') {
+      errEl.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>
+            <strong>Data Tidak Ditemukan</strong>
+            <p style="margin:4px 0 0 0;font-size:13px;color:var(--gray-600);">Nomor IDSR "${query}" tidak ditemukan. Silakan periksa kembali nomor IDSR Anda.</p>
+          </div>
+        </div>`;
+      errEl.classList.remove('hidden');
       return;
     }
 
-    // Kunjungan pertama: backend return data.prefill (bukan data.record)
-    // Kunjungan ulang: backend return data.record
-    const recordData = (state.sheetMode === 'pertama')
-      ? (data.prefill || data.record || {})
-      : (data.record || {});
-
-    state.searchResult = recordData;
-
-    // PENTING: baris untuk IDSR ini SUDAH ADA di sheet Looker (itulah
-    // sebabnya prefill ditemukan) — kunjungan pertama harus MENGEDIT baris
-    // itu (kolom kesanggupan, kondisi sr, dll yang masih kosong), BUKAN
-    // menambah baris baru. Simpan rowNumber-nya supaya dipakai onSesuai().
-    if (state.sheetMode === 'pertama') {
-      state._pertamaRowNumber = (typeof data.rowNumber === 'number') ? data.rowNumber : null;
+    // Jika tidak ada error, lanjut proses normal
+    if (!data.success) {
+      throw new Error(data.error || 'Pencarian gagal');
     }
 
+    state.searchResult = data.record;
+    
+    // Pre-fill data dari Looker
+    const recordData = data.record.full || data.record;
     displaySearchResult(recordData);
     
     // ── Cek kecocokan SubUnit ──────────────────────────────
-    state.searchResult._subUnitMismatch = isSubunitMismatch(recordData);
-
+    const _subUnitKeyMatch = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
+    const idsrSubUnit = (_subUnitKeyMatch ? recordData[_subUnitKeyMatch] : '').toLowerCase().trim();
+    const userSubUnit = (state.userSubUnit || '').toLowerCase().trim();
+    const isSubUnitMatch = idsrSubUnit === userSubUnit && idsrSubUnit !== '';
+    
+    state.searchResult._subUnitMismatch = !isSubUnitMatch;
+    
     const mismatchAlert = document.getElementById('subunitMismatchAlert');
     const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
-
-    if (state.searchResult._subUnitMismatch) {
-      showSubunitMismatchWarning();
-    } else {
+    
+    if (isSubUnitMatch || !idsrSubUnit) {
       mismatchAlert.classList.add('hidden');
       sesuaiBtn.disabled = false;
+    } else {
+      mismatchAlert.classList.remove('hidden');
+      sesuaiBtn.disabled = true;
     }
     
     resEl.classList.remove('hidden');
@@ -1994,7 +1887,6 @@ async function doSearch() {
   } finally {
     btn.disabled = false;
     btnTxt.textContent = 'Cari';
-    state._searching = false;
   }
 }
 
@@ -2006,65 +1898,48 @@ function displaySearchResult(recordData) {
   document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
   const subUnitKey = Object.keys(recordData).find(k => k.toLowerCase() === 'subunit');
   document.getElementById('resSubUnit').textContent = (subUnitKey ? recordData[subUnitKey] : '') || '—';
-  // FIX: sebelumnya hanya cek key 'Kondisi SR' atau 'kondisiSR' (camelCase
-  // tanpa spasi) — keduanya tidak pernah cocok dengan header asli sheet
-  // ('kondisi sr', huruf kecil dengan spasi). Pakai normalizeFieldKey()
-  // (sudah ada di file ini) supaya cocok dengan berbagai variasi penulisan.
-  const kondisiSRKey = Object.keys(recordData).find(k => normalizeFieldKey(k) === 'kondisi sr');
-  document.getElementById('resKondisiSR').textContent = (kondisiSRKey ? recordData[kondisiSRKey] : '') || '—';
+  document.getElementById('resKondisiSR').textContent = recordData['Kondisi SR'] || recordData['kondisiSR'] || '—';
   
   // Tampilkan "Data dari Sistem" — untuk kunjungan pertama MAUPUN kunjungan ulang
   {
     const prefillSection = document.getElementById('prefillSection');
     if (prefillSection) {
-      // Helper ambil nilai case-insensitive + alias
-      function getV(keys) {
+      // Helper: ambil nilai dari record Looker secara case-insensitive + alias.
+      // Dipakai khusus untuk field tambahan (Periode/Jml Kunjungan) dari sheet Looker,
+      // tanpa mengubah field master yang sudah ada di atas.
+      function getLookerVal(keys) {
         for (const k of keys) {
           const found = Object.keys(recordData).find(rk => rk.toLowerCase() === k.toLowerCase());
           if (found && recordData[found] && recordData[found].toString().trim()) return recordData[found].toString().trim();
         }
         return '—';
       }
-      const pWilayah = getV(['Wilayah']);
-      const pSubunit = getV(['Subunit']);
-      const pNama    = getV(['Nama']);
-      const pCater   = getV(['Cater', 'nmpegawai']);
-      const pAlamat  = getV(['Alamat']);
-      const pBlnrek  = getV(['Blnrek']);
-      const pTag     = getV(['Tag']);
-      const pPeriode = getV(['ptungg']);
-      const pJmlKunjungan = getV(['Jml_Kunjungan', 'jml_kunjungan']);
+      const pPeriode      = getLookerVal(['ptungg']);
+      const pJmlKunjungan = getLookerVal(['Jml_Kunjungan', 'jml_kunjungan']);
+
       prefillSection.innerHTML = `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
           <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Wilayah</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pWilayah}</div>
-            </div>
-            <div>
-              <div style="color:var(--gray-500);margin-bottom:2px;">Subunit</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pSubunit}</div>
-            </div>
-            <div>
-              <div style="color:var(--gray-500);margin-bottom:2px;">Nama</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pNama}</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Wilayah'] || recordData['wilayah'] || '—'}</div>
             </div>
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Cater</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pCater}</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Cater'] || recordData['cater'] || '—'}</div>
             </div>
-            <div style="grid-column:1/-1;">
+            <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pAlamat}</div>
+              <div style="font-weight:500;color:var(--gray-800);grid-column:1/-1;">${recordData['Alamat'] || recordData['alamat'] || '—'}</div>
             </div>
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Bulan Rekening</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pBlnrek}</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Blnrek'] || recordData['blnrek'] || '—'}</div>
             </div>
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pTag}</div>
+              <div style="font-weight:500;color:var(--gray-800);">${recordData['Tag'] || recordData['tag'] || '—'}</div>
             </div>
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Periode</div>
@@ -2107,8 +1982,6 @@ function displayTglBayarField(tglbayarVal) {
 function onTidakSesuai() {
   state.searchResult = null;
   document.getElementById('resultCard').classList.add('hidden');
-  const tglbayarSection = document.getElementById('tglbayarSection');
-  if (tglbayarSection) tglbayarSection.classList.add('hidden');
   document.getElementById('searchInput').value = '';
   document.getElementById('searchInput').focus();
 }
@@ -2116,36 +1989,26 @@ function onTidakSesuai() {
 async function onSesuai() {
   if (!state.searchResult) return;
   
-  // ── Status 'duplicate' tidak pernah dikembalikan oleh backend (dihapus) ──
-  // Backend hanya mengembalikan: found:true/false + status:'sudahLunas' (optional)
-  
+  // ── PERBAIKAN #3: Prevent lanjut jika ada warning status (duplicate atau sudahLunas) ──
   if (state.sheetMode === 'pertama') {
     const status = state.searchResult.status;
+    
+    // Jika status adalah duplicate, prevent navigation
+    if (status === 'duplicate') {
+      return; // Tidak lanjut ke sheet screen
+    }
     
     // Jika status adalah sudahLunas, prevent navigation
     if (status === 'sudahLunas') {
       return; // Tidak lanjut ke sheet screen
     }
-
-    // Jika status menandakan IDSR sudah pernah dikunjungi / tidak ditemukan
-    // di Looker, prevent navigation — tidak ada baris valid untuk diedit
-    if (status === 'tidakBisaKunjunganPertama') {
-      return; // Tidak lanjut ke sheet screen
-    }
   }
   
   // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan ulang)
-  // FIX: sebelumnya pakai key camelCase 'kondisiSR'/'tglBayar' yang TIDAK
-  // PERNAH cocok dengan header asli sheet ('kondisi sr' dengan spasi,
-  // 'tglbayar' satu kata) — akibatnya validasi "sudah diamankan" dan
-  // "sudah lunas" di bawah ini SELALU lolos (silent-fail), tidak pernah
-  // benar-benar memblokir apa pun. Diganti pakai normalizeFieldKey().
   if (state.sheetMode === 'kedua') {
-    const ksrKey = Object.keys(state.searchResult).find(k => normalizeFieldKey(k) === 'kondisi sr');
-    const tglKey = Object.keys(state.searchResult).find(k => normalizeFieldKey(k) === 'tglbayar');
-    const kondisiSR = (ksrKey ? state.searchResult[ksrKey] : '') || '';
-    const tglBayar  = (tglKey ? state.searchResult[tglKey]  : '') || '';
-
+    const kondisiSR = state.searchResult.kondisiSR || '';
+    const tglBayar = state.searchResult.tglBayar || '';
+    
     if (kondisiSR.toLowerCase() === 'diamankan') {
       alert('ID tersebut sudah diamankan, Proses dibatalkan');
       onTidakSesuai();
@@ -2167,36 +2030,22 @@ async function onSesuai() {
     
     try {
       // Siapkan data prefill dari Looker/k_tarip
-      const recordData = state.searchResult || {};
-      // Helper ambil nilai dari recordData secara case-insensitive + alias
-      function getPrefillVal(keys) {
-        for (const k of keys) {
-          const found = Object.keys(recordData).find(rk => rk.toLowerCase() === k.toLowerCase());
-          if (found && recordData[found]) return recordData[found].toString();
-        }
-        return '';
-      }
+      const recordData = state.searchResult.full || state.searchResult;
       const prefillData = {
-        'IDSR':          getPrefillVal(['IDSR']),
-        'Subunit':       getPrefillVal(['Subunit', 'subunit']),
-        'Wilayah':       getPrefillVal(['Wilayah']),
-        'Cater':         getPrefillVal(['Cater', 'cater', 'nmpegawai']),
-        'nmpegawai':     getPrefillVal(['Cater', 'cater', 'nmpegawai']),
-        'Admin':         getPrefillVal(['Admin', 'admin', 'username']),
-        'username':      getPrefillVal(['Admin', 'admin', 'username']),
-        'Nama':          getPrefillVal(['Nama']),
-        'Alamat':        getPrefillVal(['Alamat']),
-        'Blnrek':        getPrefillVal(['Blnrek']),
-        'Tag':           getPrefillVal(['Tag']),
-        'ptungg':        getPrefillVal(['ptungg']),  // FIX v11: sertakan Periode agar tampil di screen Sheet
+        'IDSR': recordData['IDSR'] || recordData['idsr'] || '',
+        'Subunit': (()=>{ const k=Object.keys(recordData).find(k=>k.toLowerCase()==='subunit'); return k?recordData[k]:''; })(),
+        'Wilayah': recordData['Wilayah'] || recordData['wilayah'] || '',
+        'Cater': recordData['Cater'] || recordData['cater'] || '',
+        'Nama': recordData['Nama'] || recordData['nama'] || '',
+        'Alamat': recordData['Alamat'] || recordData['alamat'] || '',
+        'Blnrek': recordData['Blnrek'] || recordData['blnrek'] || '',
+        'Tag': recordData['Tag'] || recordData['tag'] || '',
         'Email Address': state.emailForFirstVisit || '',
       };
 
-      // Baris untuk IDSR ini sudah ada di Looker (ditemukan saat pencarian),
-      // jadi kunjungan pertama harus MENGEDIT baris itu lewat updateRecord —
-      // bukan membuat baris baru lewat insertNewRecord. _pertamaRowNumber
-      // diisi di doSearch() dari rowNumber yang dikembalikan backend.
-      state._rowNumber = (typeof state._pertamaRowNumber === 'number') ? state._pertamaRowNumber : null;
+      // Tandai bahwa ini record baru yang belum disimpan ke server
+      state._rowNumber = null;
+      state._pendingPrefill = prefillData;
       state.edited = {};
 
       // ── Ambil semua header Form Responses dari GAS (hanya untuk tampilan) ──
@@ -2208,11 +2057,9 @@ async function onSesuai() {
         }
       } catch (_) {}
 
-      // Bangun state.record dari header Form Responses (lokal, untuk tampilan).
-      // _rowNumber ikut diisi dengan baris Looker yang sudah ada — BUKAN null —
-      // supaya konsisten dipakai di tempat lain (mis. penamaan file foto).
+      // Bangun state.record dari header Form Responses (lokal, belum ke server)
       if (formHeaders.length > 0) {
-        const rec = { _rowNumber: state._rowNumber };
+        const rec = { _rowNumber: null };
         formHeaders.forEach(h => {
           const prefillKey = Object.keys(prefillData).find(k => k.toLowerCase() === h.toLowerCase());
           rec[h] = prefillKey ? prefillData[prefillKey] : '';
@@ -2220,7 +2067,7 @@ async function onSesuai() {
         state.record = rec;
       } else {
         // Fallback: prefill + field editable kosong
-        const rec = { ...prefillData, _rowNumber: state._rowNumber };
+        const rec = { ...prefillData, _rowNumber: null };
         FIELD_CONFIG_PERTAMA.editable.forEach(f => { if (!(f in rec)) rec[f] = ''; });
         state.record = rec;
       }
@@ -2254,12 +2101,7 @@ async function onSesuai() {
   }
 
   // Untuk kunjungan ulang: loading record yang sudah ada
-  // BUG FIX: state.searchResult berasal dari data.record (lihat doSearch),
-  // dan buildRecord() di backend menyimpan baris sebagai '_rowNumber'
-  // (pakai underscore) — BUKAN 'rowNumber'. Membaca '.rowNumber' selalu
-  // menghasilkan undefined, sehingga getRecord gagal dengan
-  // "rowNumber tidak valid."
-  const rowNumber = state.searchResult._rowNumber;
+  const rowNumber = state.searchResult.rowNumber;
   showScreen('sheet');
   document.getElementById('sheetTitle').textContent = `IDSR ${state.searchResult.idsr ?? ''}`;
   document.getElementById('changesBanner').classList.add('hidden');
@@ -2288,29 +2130,14 @@ async function loadRecord(rowNumber) {
     
     // Pre-fill data dari sheet Looker untuk kunjungan pertama
     if (state.sheetMode === 'pertama' && state.searchResult) {
-      // FIX v2: Tambah 'Admin' ke daftar prefill
-      const prefillFields = ['IDSR', 'Subunit', 'Wilayah', 'Cater', 'Admin', 'Nama', 'Alamat', 'Blnrek', 'Tag'];
-      const recordData = state.searchResult || {};
-      
-      // FIX v2: Map logical field names ke actual column names di sheet
-      const fieldNameMap = {
-        'cater': 'nmpegawai',
-        'admin': 'username',
-      };
+      const prefillFields = ['IDSR', 'Subunit', 'Wilayah', 'Cater', 'Nama', 'Alamat', 'Blnrek', 'Tag'];
+      const recordData = state.searchResult.full || state.searchResult;
       
       prefillFields.forEach(field => {
         const value = recordData[field] || recordData[field.toLowerCase()] || '';
         if (value && !state.edited[field]) {
           state.edited[field] = value;
-          
-          // Determine actual column name (for sheet compatibility)
-          const actualColName = fieldNameMap[field.toLowerCase()] || field;
-          state.record[actualColName] = value;
-          
-          // Also keep logical field name for compatibility
-          if (actualColName !== field) {
-            state.record[field] = value;
-          }
+          state.record[field] = value;
         }
       });
     }
@@ -2333,8 +2160,7 @@ function renderFields() {
   if (!content) { console.error('[renderFields] sheetContent null'); return; }
   const rec = state.record;
   if (!rec) { console.error('[renderFields] state.record null'); return; }
-  const rawKeys = Object.keys(rec).filter(k => k !== '_rowNumber');
-  const keys = sortFieldKeysByDisplayOrder(rawKeys);
+  const keys = Object.keys(rec).filter(k => k !== '_rowNumber');
 
   const inner = document.createElement('div');
   inner.className = 'sheet-inner';
@@ -2342,7 +2168,7 @@ function renderFields() {
   keys.forEach(label => {
     if (isHidden(label)) return;
     try {
-      if (label.toLowerCase() === 'timestamp' || label.toLowerCase() === 'tgl_input' || label.toLowerCase() === 'tglinput') {
+      if (label.toLowerCase() === 'timestamp') {
         inner.appendChild(buildTimestampCard(rec[label] ?? ''));
       } else {
         inner.appendChild(buildFieldCard(label));
@@ -2354,72 +2180,6 @@ function renderFields() {
 
   content.innerHTML = '';
   content.appendChild(inner);
-
-  // FIX v11: Render ulang prefillSection di screen Sheet menggunakan state.record,
-  // agar nilai Periode (ptungg) tampil meskipun field ini ada di HIDDEN_FIELDS.
-  // Hanya menimpa innerHTML prefillSection — tidak mengubah logika field lain.
-  const prefillSectionSheet = document.getElementById('prefillSection');
-  if (prefillSectionSheet && rec) {
-    function getVFromRec(keys) {
-      for (const k of keys) {
-        const found = Object.keys(rec).find(rk => rk.toLowerCase() === k.toLowerCase());
-        if (found && rec[found] && rec[found].toString().trim()) return rec[found].toString().trim();
-      }
-      return '—';
-    }
-    const pWilayah2     = getVFromRec(['Wilayah']);
-    const pSubunit2     = getVFromRec(['Subunit']);
-    const pNama2        = getVFromRec(['Nama']);
-    const pCater2       = getVFromRec(['Cater', 'nmpegawai']);
-    const pAlamat2      = getVFromRec(['Alamat']);
-    const pBlnrek2      = getVFromRec(['Blnrek']);
-    const pTag2         = getVFromRec(['Tag']);
-    const pPeriode2     = getVFromRec(['ptungg']);
-    const pJmlKunjungan2 = getVFromRec(['Jml_Kunjungan', 'jml_kunjungan']);
-
-    prefillSectionSheet.innerHTML = `
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
-        <div style="font-size:12px;color:var(--gray-500);font-weight:600;margin-bottom:8px;">DATA DARI SISTEM</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Wilayah</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pWilayah2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Subunit</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pSubunit2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Nama</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pNama2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Cater</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pCater2}</div>
-          </div>
-          <div style="grid-column:1/-1;">
-            <div style="color:var(--gray-500);margin-bottom:2px;">Alamat</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pAlamat2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Bulan Rekening</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pBlnrek2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Tag</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pTag2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Periode</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pPeriode2}</div>
-          </div>
-          <div>
-            <div style="color:var(--gray-500);margin-bottom:2px;">Jml Kunjungan</div>
-            <div style="font-weight:500;color:var(--gray-800);">${pJmlKunjungan2}</div>
-          </div>
-        </div>
-      </div>`;
-  }
 }
 
 function buildTimestampCard(raw) {
@@ -2463,34 +2223,6 @@ function buildTimestampCard(raw) {
   return div;
 }
 
-// Kartu info "Jumlah Kunjungan" — menampilkan nilai kolom Jml_Kunjungan dari sheet
-// (jumlah kunjungan ulang yang pernah dilakukan). Read-only, tidak dikirim ke server.
-function buildKunjunganInfoCard() {
-  // Ambil nilai Jml_Kunjungan dari record (case-insensitive)
-  const jmlKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'jml_kunjungan');
-  const jmlVal = jmlKey ? (state.record[jmlKey] || '0') : '0';
-
-  // Jenis kunjungan saat ini untuk info tambahan
-  const visitType = state.sheetMode || state.visitType || 'kedua';
-  const visitLabel = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
-
-  const div = document.createElement('div');
-  div.className = 'field-card';
-  div.id = 'field-Jml_Kunjungan';
-  div.innerHTML = `
-    <div class="field-header">
-      <span class="field-label gray">Jumlah Kunjungan</span>
-      <span class="tag tag-gray">INFO</span>
-    </div>
-    <div class="field-row">
-      <div class="field-val readonly">
-        ${jmlVal} kali kunjungan ulang
-        <span style="font-size:12px;color:var(--gray-400);margin-left:8px;">(${visitLabel})</span>
-      </div>
-    </div>`;
-  return div;
-}
-
 function buildFieldCard(label) {
   const readonly = isReadonly(label) || isTglKesanggupanLocked(label) || isSegelDateLocked(label);
   const photoUpload = isPhotoUpload(label) && !readonly;
@@ -2509,15 +2241,13 @@ function buildFieldCard(label) {
 
   let valHTML = '';
   if (photoUpload && currentVal) {
-    valHTML = `<div class="field-val" style="display:flex;flex-direction:column;gap:6px;min-width:0;">
-      <div style="display:flex;align-items:center;gap:5px;">
-        <svg width="13" height="13" fill="none" stroke="#22c55e" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
-        <a href="${currentVal}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-           style="color:var(--blue);text-decoration:underline;font-size:12px;">
-          Lihat foto (GDrive)
-        </a>
-      </div>
-      <span style="font-size:11px;color:var(--gray-400);">Ketuk kartu untuk ganti foto</span>
+    valHTML = `<div class="field-val" style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+      <a href="${currentVal}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+         style="color:var(--blue);text-decoration:underline;font-size:13px;display:flex;align-items:flex-start;gap:4px;min-width:0;word-break:break-all;">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span style="word-break:break-all;">${currentVal}</span>
+      </a>
+      <span style="font-size:11px;color:var(--gray-400);">Ketuk kartu ini untuk ganti foto</span>
     </div>`;
   } else if (URL_DISPLAY_FIELDS.has(label) && currentVal) {
     valHTML = `<div class="field-val url">
@@ -2544,7 +2274,7 @@ function buildFieldCard(label) {
   div.id = `field-${label.replace(/\s+/g,'_')}`;
   div.innerHTML = `
     <div class="field-header">
-      <span class="field-label ${readonly?'gray':'blue'}">${getDisplayLabel(label)}</span>
+      <span class="field-label ${readonly?'gray':'blue'}">${label}</span>
       ${tagHTML}
     </div>
     <div class="field-row">${valHTML}${editIcon}</div>`;
@@ -2589,7 +2319,7 @@ function refreshFieldCard(label) {
 // ────────────────────────────────────────────────────────────
 function openEditModal(label, currentVal, dropdownOpts, isDate) {
   state.modalField = label;
-  document.getElementById('modalTitle').textContent = `Edit: ${getDisplayLabel(label)}`;
+  document.getElementById('modalTitle').textContent = `Edit: ${label}`;
   document.getElementById('modalHint').classList.add('hidden');
 
   const area = document.getElementById('modalInputArea');
@@ -2622,7 +2352,7 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
       inp.max = maxDate;
       const hintEl = document.getElementById('modalHint');
       hintEl.classList.remove('hidden');
-      hintEl.textContent = `Maksimal 14 hari dari hari ini (${isoToDisplay(today)} s/d ${isoToDisplay(maxDate)})`;
+      hintEl.textContent = `Maksimal 14 hari dari hari ini (${today} s/d ${maxDate})`;
     }
     // Tanggal Segel/Cabut: Min = tgl 1 bulan ini (atau 3 hari terakhir bulan lalu jika tgl 1),
     // Max = hari ini
@@ -2635,9 +2365,9 @@ function openEditModal(label, currentVal, dropdownOpts, isDate) {
       hintEl.classList.remove('hidden');
       const now = new Date();
       if (now.getDate() === 1) {
-        hintEl.textContent = `Hari ini tgl 1 — boleh pilih 3 hari terakhir bulan lalu (${isoToDisplay(minDate)} s/d ${isoToDisplay(maxDate)})`;
+        hintEl.textContent = `Hari ini tgl 1 — boleh pilih 3 hari terakhir bulan lalu (${minDate} s/d ${maxDate})`;
       } else {
-        hintEl.textContent = `Pilih tanggal di bulan ini, maksimal hari ini (${isoToDisplay(minDate)} s/d ${isoToDisplay(maxDate)})`;
+        hintEl.textContent = `Pilih tanggal di bulan ini, maksimal hari ini (${minDate} s/d ${maxDate})`;
       }
     }
     
@@ -2727,7 +2457,7 @@ function confirmEdit() {
       if (kondisiKey) refreshFieldCard(kondisiKey);
     }
     // Untuk kedua kunjungan: refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
-    const tglKey = Object.keys(state.record || {}).find(k => isMax14DaysField(k));
+    const tglKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'tgl kesanggupan');
     if (tglKey) refreshFieldCard(tglKey);
   }
 
@@ -3069,15 +2799,11 @@ function validateBeforeSave() {
     const requiredFields = [
       { key: 'kesanggupan',     label: 'Kesanggupan' },
       { key: 'kondisi sr',      label: 'Kondisi SR' },
-      // 'altKeys': header ASLI di sheet adalah 'fsurat'/'fkunjungan', bukan
-      // 'foto surat'/'foto kunjungan' — cek kedua nama supaya validasi tidak
-      // salah menganggap foto belum diisi padahal sudah diupload.
-      { key: 'foto surat',      label: 'Foto Surat',     altKeys: ['fsurat'] },
-      { key: 'foto kunjungan',  label: 'Foto Kunjungan', altKeys: ['fkunjungan'] },
+      { key: 'foto surat',      label: 'Foto Surat' },
+      { key: 'foto kunjungan',  label: 'Foto Kunjungan' },
     ];
     for (const f of requiredFields) {
-      const altVal = (f.altKeys || []).map(getVal).find(v => v);
-      if (!getVal(f.key) && !altVal) {
+      if (!getVal(f.key)) {
         showToast(`Field "${f.label}" wajib diisi sebelum menyimpan.`, 'error');
         return false;
       }
@@ -3087,7 +2813,7 @@ function validateBeforeSave() {
     const kesanggupanVal = getVal('kesanggupan').toLowerCase();
     if (kesanggupanVal === 'bersedia') {
       const allKeys = Object.keys(Object.assign({}, rec, edited));
-      const tglKesanggupanKey = allKeys.find(k => isMax14DaysField(k));
+      const tglKesanggupanKey = allKeys.find(k => isMax15DaysField(k));
       if (!tglKesanggupanKey || !getVal(tglKesanggupanKey)) {
         showToast('Tgl Kesanggupan wajib diisi karena Kesanggupan "Bersedia".', 'error');
         return false;
@@ -3106,8 +2832,8 @@ function validateBeforeSave() {
     }
   }
 
-  // ── Poin 1: Kunjungan Ulang (kedua dst) — jika Kesanggupan sebelumnya "Belum ketemu", wajib isi Kondisi SR ──
-  if (state.sheetMode === 'kedua') {
+  // ── Poin 1: Kunjungan Ulang — jika Kesanggupan sebelumnya "Belum ketemu", wajib isi Kondisi SR ──
+  if (state.sheetMode === 'ulang') {
     const kesanggupanSebelumnya = (rec['Kesanggupan'] ?? rec['kesanggupan'] ?? '').toString().toLowerCase().trim();
     if (kesanggupanSebelumnya === 'belum ketemu') {
       if (!getVal('kondisi sr')) {
@@ -3140,7 +2866,7 @@ function openConfirmChangesModal() {
     const newVal = value || '—';
 
     item.innerHTML = `
-      <div style="font-weight:600;color:var(--blue);margin-bottom:3px;">${getDisplayLabel(field)}</div>
+      <div style="font-weight:600;color:var(--blue);margin-bottom:3px;">${field}</div>
       <div style="color:var(--gray-600);">
         <span style="color:var(--gray-400);">dari:</span> ${oldVal}<br>
         <span style="color:var(--gray-400);">ke:</span> <strong style="color:var(--green)">${newVal}</strong>
@@ -3175,17 +2901,20 @@ async function saveAll() {
   saveTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:white;"></div> Menyimpan...';
 
   try {
-    // ── Ambil info user untuk audit log ──
-    const currentUserEmail = state.user?.userID  || 'unknown';
-    const currentUsername  = state.user?.username || 'unknown';
-
-    // ── Kunjungan pertama TIDAK PERNAH insert baris baru — baris untuk IDSR
-    // ini sudah ada di Looker (ditemukan saat pencarian). Kalau rowNumber
-    // tidak ada di titik ini, berarti ada yang salah di alur sebelumnya
-    // (seharusnya tidak mungkin tercapai karena search yang found:false
-    // sudah diblokir sebelum sampai ke screen sheet/edit) ──
+    // ── Kunjungan pertama: record belum ada di server → insert dulu ──
     if (state.sheetMode === 'pertama' && state._rowNumber === null) {
-      throw new Error('Baris Looker untuk IDSR ini tidak ditemukan. Silakan cari ulang IDSR.');
+      const prefillData = state._pendingPrefill || {};
+      const insertResp = await apiPost({
+        action: 'insertNewRecord',
+        fields: prefillData,
+        visitType: 'pertama',
+      });
+      if (!insertResp.success) {
+        throw new Error(insertResp.error || 'Gagal membuat record baru di server');
+      }
+      state._rowNumber = insertResp.rowNumber;
+      // Sync rowNumber ke record lokal
+      if (state.record) state.record._rowNumber = insertResp.rowNumber;
     }
 
     // Jika kunjungan pertama, tambahkan email ke fields yang akan disimpan
@@ -3193,28 +2922,18 @@ async function saveAll() {
     if (state.sheetMode === 'pertama' && state.emailForFirstVisit) {
       fieldsToSave['Email Address'] = state.emailForFirstVisit;
     }
-
-    // ── Ganti apiGet → apiPost agar aman untuk data panjang/foto ──
-    const updateResp = await apiPost({
-      action:     'updateRecord',
-      rowNumber:  state._rowNumber,
-      fields:     fieldsToSave,
-      visitType:  state.sheetMode || 'kedua',
-      userEmail:  currentUserEmail,
-      username:   currentUsername,
-    });
-    if (!updateResp.success) {
-      throw new Error(updateResp.error || 'Gagal menyimpan data ke server');
-    }
+    
+    const fieldsJson = JSON.stringify(fieldsToSave);
+    await apiGet({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'kedua' });
 
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
     }
-    // POIN 4: tgl_input sekarang di-overwrite (replace nilai lama), bukan di-concat
+    const existing = (state.record['Timestamp'] ?? '').toString().trim();
     const now = formatNow();
-    state.record['tgl_input'] = now;
-    if (state.record['Timestamp']) state.record['Timestamp'] = now;
+    state.record['Timestamp'] = existing ? `${existing} | ${now}` : now;
     state.edited = {};
+    state._pendingPrefill = null;
 
     showToast('Data berhasil disimpan ke Google Sheets', 'success');
 
@@ -3224,6 +2943,7 @@ async function saveAll() {
       const savedVisitType = state.sheetMode || state.visitType;
       state.record = null;
       state.edited = {};
+      state._pendingPrefill = null;
       if (savedVisitType === 'pertama') {
         state.emailForFirstVisit = savedEmail;
         state.sheetMode = 'pertama';
@@ -3248,7 +2968,9 @@ function formatNow() {
   const n = new Date();
   const d = String(n.getDate()).padStart(2,'0');
   const mo = String(n.getMonth()+1).padStart(2,'0');
-  return `${d}/${mo}/${n.getFullYear()}`;
+  const h = String(n.getHours()).padStart(2,'0');
+  const mi = String(n.getMinutes()).padStart(2,'0');
+  return `${d}/${mo}/${n.getFullYear()} ${h}:${mi}`;
 }
 
 // goBack() sudah didefinisikan di atas (dekat fungsi API) — tidak perlu duplikasi di sini
