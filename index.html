@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbzg2NLHSBxtzfK6EP2P48hM3BMQ01x1eRa-aCnlZtjASj5vBw7sXLOB6Vz7sdq5GxXA/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbxtCktri_yrneYn7aSbdmyJp2UqrcLLXLgxyRyjiVauktk-KbEAKht-RIqZC7DW5-zQ/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1833,6 +1833,36 @@ async function doSearch() {
       return;
     }
 
+    // Kondisi: IDSR sudah pernah dikunjungi (kolom kunjungan = "1" di Looker)
+    if (state.sheetMode === 'pertama' && data.status === 'sudahDikunjungi') {
+      const recordData = data.record.full || data.record;
+      
+      // Tampilkan result card dengan data dari Looker
+      displaySearchResult(recordData);
+      
+      // Tampilkan warning untuk sudah dikunjungi
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FFF7ED';
+        warningEl.style.color = '#92400E';
+        warningEl.style.border = '1px solid #FCD34D';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>⚠️ IDSR Sudah Dikunjungi</strong> — Data ini sudah pernah dikunjungi. Gunakan menu <strong>Kunjungan Ulang</strong> untuk menambahkan kunjungan berikutnya.</span>`;
+        warningEl.classList.remove('hidden');
+      }
+      
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+      
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'sudahDikunjungi' };
+      
+      resEl.classList.remove('hidden');
+      return;
+    }
+
     // Jika kunjungan pertama dan status invalid
     if (state.sheetMode === 'pertama' && data.status === 'invalid') {
       errEl.innerHTML = `
@@ -1995,6 +2025,11 @@ async function onSesuai() {
     
     // Jika status adalah duplicate, prevent navigation
     if (status === 'duplicate') {
+      return; // Tidak lanjut ke sheet screen
+    }
+    
+    // Jika status adalah sudahDikunjungi, prevent navigation
+    if (status === 'sudahDikunjungi') {
       return; // Tidak lanjut ke sheet screen
     }
     
