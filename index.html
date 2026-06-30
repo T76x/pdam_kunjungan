@@ -1393,7 +1393,13 @@ async function apiGet(params) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Terjadi kesalahan di server.');
+  // Status "soft" ini bukan error fatal — backend sengaja mengirim success:false
+  // agar frontend bisa menampilkan result card beserta warning yang sesuai
+  // (mis. IDSR duplikat / sudah lunas / sudah pernah dikunjungi).
+  const softStatuses = ['duplicate', 'sudahLunas', 'sudahDikunjungi'];
+  if (!data.success && !softStatuses.includes(data.status)) {
+    throw new Error(data.error || 'Terjadi kesalahan di server.');
+  }
   return data;
 }
 
