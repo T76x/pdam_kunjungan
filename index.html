@@ -891,7 +891,7 @@
         </div>
       </button>
 
-      <button class="visit-option-btn" onclick="onPilihKunjunganKedua()">
+      <button class="visit-option-btn" onclick="onPilihKunjunganUlang()">
         <div class="visit-option-icon second">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbz0QkldQPN5ZNiJFSVugKCGmDmBldPUrtAGaIWdbXkGYKcWeITd_Zs-_LeIjceki2Dv/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbzcpU1tYoxGEe1A8zFLiy0JpCUBxEYDbwpLfRvRgmbbKgEp88Z114APtolX2h1cPrZX/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1202,7 +1202,7 @@ function isTglKesanggupanLocked(label) {
 }
 
 // Cek apakah field Tanggal Segel/Cabut harus dikunci (readonly)
-// Pada kunjungan pertama & kedua: HANYA terbuka jika Kondisi SR = "Segel" atau "Diamankan"
+// Pada kunjungan pertama & ulang: HANYA terbuka jika Kondisi SR = "Segel" atau "Diamankan"
 // Jika belum dipilih, kosong, atau "Belum disegel" maka terkunci
 function isSegelDateLocked(label) {
   if (!isSegelDateField(label)) return false;
@@ -1514,9 +1514,9 @@ function onPilihKunjunganPertama() {
   document.getElementById('emailInputModal').classList.remove('hidden');
 }
 
-function onPilihKunjunganKedua() {
-  state.visitType = 'kedua';
-  state.sheetMode = 'kedua';
+function onPilihKunjunganUlang() {
+  state.visitType = 'ulang';
+  state.sheetMode = 'ulang';
   updateVisitTypeBadge();
   setUserUI();
   showScreen('home');
@@ -1733,7 +1733,7 @@ function toggleDropdown() {
 function updateVisitTypeBadge() {
   const badge = document.getElementById('visitTypeBadge');
   if (badge) {
-    const visitType = state.sheetMode || state.visitType || 'kedua';
+    const visitType = state.sheetMode || state.visitType || 'ulang';
     badge.textContent = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
     badge.style.color = 'white';
   }
@@ -2046,7 +2046,7 @@ async function onSesuai() {
   }
   
   // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan ulang)
-  if (state.sheetMode === 'kedua') {
+  if (state.sheetMode === 'ulang') {
     const kondisiSR = state.searchResult.kondisiSR || '';
     const tglBayar = state.searchResult.tglBayar || '';
     
@@ -2490,19 +2490,19 @@ function confirmEdit() {
 
   // Jika yang diedit adalah Kesanggupan,
   // refresh field Kondisi SR juga agar opsi dropdown-nya ikut berubah (hanya kunjungan pertama),
-  // serta refresh Tgl Kesanggupan agar status locked/unlocked ikut update (kedua kunjungan)
+  // serta refresh Tgl Kesanggupan agar status locked/unlocked ikut update (kedua jenis kunjungan)
   if (label.toLowerCase() === 'kesanggupan') {
     // Untuk kunjungan pertama: refresh Kondisi SR juga
     if (state.sheetMode === 'pertama') {
       const kondisiKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'kondisi sr');
       if (kondisiKey) refreshFieldCard(kondisiKey);
     }
-    // Untuk kedua kunjungan: refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
+    // Untuk kedua jenis kunjungan: refresh Tgl Kesanggupan agar terkunci/terbuka sesuai pilihan
     const tglKey = Object.keys(state.record || {}).find(k => k.toLowerCase() === 'tgl kesanggupan');
     if (tglKey) refreshFieldCard(tglKey);
   }
 
-  // Jika yang diedit adalah Kondisi SR (kunjungan pertama & kedua),
+  // Jika yang diedit adalah Kondisi SR (kunjungan pertama & ulang),
   // refresh Tanggal Segel/Cabut agar status locked/unlocked ikut update
   if (label.toLowerCase() === 'kondisi sr') {
     const segelKey = Object.keys(state.record || {}).find(k => isSegelDateField(k));
@@ -2854,7 +2854,7 @@ function validateBeforeSave() {
     const kesanggupanVal = getVal('kesanggupan').toLowerCase();
     if (kesanggupanVal === 'bersedia') {
       const allKeys = Object.keys(Object.assign({}, rec, edited));
-      const tglKesanggupanKey = allKeys.find(k => isMax14DaysField(k));
+      const tglKesanggupanKey = allKeys.find(k => isMax15DaysField(k));
       if (!tglKesanggupanKey || !getVal(tglKesanggupanKey)) {
         showToast('Tgl Kesanggupan wajib diisi karena Kesanggupan "Bersedia".', 'error');
         return false;
@@ -2965,7 +2965,7 @@ async function saveAll() {
     }
     
     const fieldsJson = JSON.stringify(fieldsToSave);
-    await apiGet({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'kedua' });
+    await apiGet({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'ulang' });
 
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
