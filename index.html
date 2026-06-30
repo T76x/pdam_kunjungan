@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxtCktri_yrneYn7aSbdmyJp2UqrcLLXLgxyRyjiVauktk-KbEAKht-RIqZC7DW5-zQ/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyBYSXMDvq9NETbEfofZvCldQXPLINL1opoeZx-Do_xhMezpKekPnlR9D2DFBiKmes/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -2964,9 +2964,7 @@ async function saveAll() {
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
     }
-    const existing = (state.record['Timestamp'] ?? '').toString().trim();
-    const now = formatNow();
-    state.record['Timestamp'] = existing ? `${existing} | ${now}` : now;
+    state.record['Timestamp'] = formatNow();
     state.edited = {};
     state._pendingPrefill = null;
 
