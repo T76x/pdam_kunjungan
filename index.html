@@ -1892,6 +1892,43 @@ async function doSearch() {
       return;
     }
 
+    // ── TAMBAHAN: Kunjungan Ulang — cek apakah Kondisi SR sebelumnya sudah "Diamankan" ──
+    if (state.sheetMode !== 'pertama' && data.success && data.record) {
+      const kondisiSRCheck = (data.record.kondisiSR || '').toString().toLowerCase().trim();
+
+      if (kondisiSRCheck === 'diamankan') {
+        const recordData = data.record.full || data.record;
+
+        // Result card tetap dimunculkan (poin 2)
+        displaySearchResult(recordData);
+
+        // Tampilkan warning Kondisi SR sudah diamankan
+        const warningEl = document.getElementById('subunitMismatchAlert');
+        if (warningEl) {
+          warningEl.style.background = '#FEF2F2';
+          warningEl.style.color = '#991B1B';
+          warningEl.style.border = '1px solid #FCA5A5';
+          warningEl.innerHTML = `
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span><strong>🚫 Kondisi SR sudah diamankan, data tidak dapat diproses!!!!!</strong></span>`;
+          warningEl.classList.remove('hidden');
+        }
+
+        // Disable tombol sesuai
+        const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+        if (sesuaiBtn) sesuaiBtn.disabled = true;
+
+        // Simpan status di state untuk digunakan di onSesuai()
+        state.searchResult = { ...data.record, status: 'sudahDiamankan' };
+
+        resEl.classList.remove('hidden');
+
+        // Update badge jenis kunjungan
+        updateVisitTypeBadge();
+        return;
+      }
+    }
+
     // Jika tidak ada error, lanjut proses normal
     if (!data.success) {
       throw new Error(data.error || 'Pencarian gagal');
