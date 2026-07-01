@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbzcpU1tYoxGEe1A8zFLiy0JpCUBxEYDbwpLfRvRgmbbKgEp88Z114APtolX2h1cPrZX/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbzqxki7saeGzqqAzLt8C7gHi5vwbaGxbGou-mD9ncWaNFAOz5RNj4etmZyeZst5pQq8/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1731,11 +1731,20 @@ function toggleDropdown() {
 }
 
 function updateVisitTypeBadge() {
+  const visitType = state.sheetMode || state.visitType || 'ulang';
+  const label = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
+
   const badge = document.getElementById('visitTypeBadge');
   if (badge) {
-    const visitType = state.sheetMode || state.visitType || 'ulang';
-    badge.textContent = (visitType === 'pertama') ? 'Kunjungan Pertama' : 'Kunjungan Ulang';
+    badge.textContent = label;
     badge.style.color = 'white';
+  }
+
+  // Badge pada result card (pencarian IDSR) — ikut disesuaikan agar tidak
+  // selalu tertulis "Kunjungan Pertama" walau sedang kunjungan ulang.
+  const resultBadgeText = document.getElementById('visitTypeText');
+  if (resultBadgeText) {
+    resultBadgeText.textContent = label;
   }
 }
 document.addEventListener('click', e => {
@@ -1929,6 +1938,10 @@ async function doSearch() {
 // ── Helper functions untuk menampilkan result card ──
 
 function displaySearchResult(recordData) {
+  // Pastikan badge "Kunjungan Pertama/Ulang" pada result card selalu sesuai
+  // dengan visit type yang sedang aktif (dipanggil di semua kondisi hasil pencarian).
+  updateVisitTypeBadge();
+
   document.getElementById('resIDSR').innerHTML = `
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px;vertical-align:middle;color:var(--blue)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${recordData['IDSR'] || recordData['idsr'] || '—'}`;
   document.getElementById('resNama').textContent    = recordData['Nama'] || recordData['nama'] || '—';
@@ -1952,6 +1965,16 @@ function displaySearchResult(recordData) {
       }
       const pPeriode      = getLookerVal(['ptungg']);
       const pJmlKunjungan = getLookerVal(['Jml_Kunjungan', 'jml_kunjungan']);
+
+      // Pinalti hanya ditampilkan untuk kunjungan ulang, dengan format "X hari"
+      const isUlangVisit = (state.sheetMode || state.visitType || 'ulang') === 'ulang';
+      const pPinaltiRaw   = getLookerVal(['pinalti']);
+      const pPinalti      = (pPinaltiRaw !== '—') ? (pPinaltiRaw + ' hari') : '—';
+      const pinaltiRowHtml = isUlangVisit ? `
+            <div>
+              <div style="color:var(--gray-500);margin-bottom:2px;">Pinalti</div>
+              <div style="font-weight:500;color:var(--gray-800);">${pPinalti}</div>
+            </div>` : '';
 
       prefillSection.innerHTML = `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
@@ -1984,7 +2007,7 @@ function displaySearchResult(recordData) {
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Jml Kunjungan</div>
               <div style="font-weight:500;color:var(--gray-800);">${pJmlKunjungan}</div>
-            </div>
+            </div>${pinaltiRowHtml}
           </div>
         </div>`;
     }
