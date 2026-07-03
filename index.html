@@ -268,6 +268,27 @@
   .confirm-question { font-size: 14px; color: var(--gray-500); margin: 16px 0 12px 0; font-weight: 600; }
   .confirm-btns { display:flex; gap: 12px; }
 
+  /* ── Skeleton Loading (Result Card) ── */
+  .skeleton-card {
+    background: white; border-radius: 16px; border: 2px solid var(--gray-100);
+    padding: 28px 32px; box-shadow: var(--shadow-md); margin-top: 24px;
+    animation: slideUp .3s ease; width: 100%;
+  }
+  .skeleton-line {
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+  .skeleton-row { display:flex; gap:14px; align-items:flex-start; margin-bottom: 18px; }
+  .skeleton-icon { width:22px; height:22px; border-radius:6px; flex-shrink:0; margin-top:4px; }
+  .skeleton-btns { display:flex; gap:12px; margin-top: 20px; }
+  .skeleton-btns .skeleton-line { flex:1; height: 44px; border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-line { animation: none; background: var(--gray-100); }
+  }
+
   /* ── Sheet/Edit Screen ── */
   #sheet { display: none; flex-direction: column; }
   #sheet.active { display: flex; }
@@ -1035,6 +1056,42 @@
           <button class="btn btn-green" id="confirmSesuaiBtn" onclick="onSesuai()">Sesuai</button>
         </div>
       </div>
+
+      <!-- Skeleton loading: tampil saat menunggu hasil pencarian, mengikuti bentuk result-card -->
+      <div class="skeleton-card hidden" id="searchSkeleton">
+        <div class="skeleton-row">
+          <div class="skeleton-line skeleton-icon"></div>
+          <div style="flex:1">
+            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
+            <div class="skeleton-line" style="width:55%;height:16px;"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-line skeleton-icon"></div>
+          <div style="flex:1">
+            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
+            <div class="skeleton-line" style="width:70%;height:16px;"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-line skeleton-icon"></div>
+          <div style="flex:1">
+            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
+            <div class="skeleton-line" style="width:45%;height:16px;"></div>
+          </div>
+        </div>
+        <div class="skeleton-row" style="margin-bottom:0;">
+          <div class="skeleton-line skeleton-icon"></div>
+          <div style="flex:1">
+            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
+            <div class="skeleton-line" style="width:60%;height:16px;"></div>
+          </div>
+        </div>
+        <div class="skeleton-btns">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1763,11 +1820,13 @@ async function doSearch() {
   
   const errEl = document.getElementById('searchError');
   const resEl = document.getElementById('resultCard');
+  const skelEl = document.getElementById('searchSkeleton');
   const btn = document.getElementById('searchBtn');
   const btnTxt = document.getElementById('searchBtnText');
 
   errEl.classList.add('hidden');
   resEl.classList.add('hidden');
+  if (skelEl) skelEl.classList.remove('hidden');
   btn.disabled = true;
   btnTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;"></div>';
 
@@ -1973,6 +2032,7 @@ async function doSearch() {
     errEl.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> ${e.message}`;
     errEl.classList.remove('hidden');
   } finally {
+    if (skelEl) skelEl.classList.add('hidden');
     btn.disabled = false;
     btnTxt.textContent = 'Cari';
   }
