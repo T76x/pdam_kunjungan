@@ -49,7 +49,8 @@
 
   /* ── Screens ── */
   .screen { display: none; min-height: 100vh; }
-  .screen.active { display: flex; flex-direction: column; }
+  .screen.active { display: flex; flex-direction: column; animation: screenIn .22s ease-out; }
+  @keyframes screenIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
 
   /* ── Splash ── */
   #splash {
@@ -286,6 +287,7 @@
   .skeleton-btns { display:flex; gap:12px; margin-top: 20px; }
   .skeleton-btns .skeleton-line { flex:1; height: 44px; border-radius: 8px; }
   @media (prefers-reduced-motion: reduce) {
+    .screen.active { animation: none; }
     .skeleton-line { animation: none; background: var(--gray-100); }
   }
 
