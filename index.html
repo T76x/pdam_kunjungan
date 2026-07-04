@@ -298,6 +298,27 @@
   .tag-purple { background: #EDE9FE; color: #7C3AED; }
   .field-val { font-size: 16px; color: var(--gray-900); font-weight: 500; line-height: 1.5; }
   .field-val.empty { color: var(--gray-300); font-style: italic; }
+
+  /* ── Skeleton Loading (shimmer) — pengganti spinner polos saat fetch data ── */
+  .skeleton-card {
+    background: white; border-radius: 14px; padding: 18px 20px; margin-bottom: 10px;
+    box-shadow: var(--shadow-sm); border: 1.5px solid transparent;
+  }
+  .skeleton-line {
+    height: 14px; border-radius: 6px;
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+  }
+  .skeleton-line.label { width: 30%; height: 10px; margin-bottom: 12px; }
+  .skeleton-line.value { width: 65%; height: 16px; }
+  .skeleton-line.value.w-50 { width: 50%; }
+  .skeleton-line.value.w-80 { width: 80%; }
+  .skeleton-line.value.w-40 { width: 40%; }
+  @keyframes skeleton-shimmer {
+    0%   { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
   .field-val.readonly { color: var(--gray-600); }
   .field-val.url { color: var(--blue); text-decoration: underline; font-size: 14px; display:flex; align-items:center; gap:4px; overflow:hidden; }
   .field-val.url span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1075,10 +1096,12 @@
 
   <div class="sheet-content" id="sheetContent">
     <div class="sheet-inner">
-      <div class="center-spinner">
-        <div class="spinner spinner-blue"></div>
-        Memuat data...
-      </div>
+      <div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value w-80"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value w-50"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value w-40"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value w-80"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value w-50"></div></div>
     </div>
   </div>
 </div>
@@ -1087,7 +1110,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxh02Wce4J6CiV3NCSKgFPfAtlsyMf-NNOzAetMaUy92nGjPGT7WCX6rYGsuKBx3LKw/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyKl0yIP83TphoTkJfgJn5a1MeilMVDeq-xV70MVpDCByG_BSk6bko1-koU4bbQGhae/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -2300,15 +2323,19 @@ async function onSesuai() {
 // ────────────────────────────────────────────────────────────
 // SHEET / RECORD
 // ────────────────────────────────────────────────────────────
+// Skeleton shimmer untuk loading state — pengganti spinner polos saat
+// fetch data dari Apps Script (yang biasanya agak lambat), meniru layout
+// field-card sungguhan agar transisi ke data asli terasa mulus.
+function skeletonCardsHTML() {
+  const widths = ['w-80', 'w-50', '', 'w-40', 'w-80', 'w-50'];
+  return `<div class="sheet-inner">` +
+    widths.map(w => `<div class="skeleton-card"><div class="skeleton-line label"></div><div class="skeleton-line value ${w}"></div></div>`).join('') +
+    `</div>`;
+}
+
 async function loadRecord(rowNumber) {
   const content = document.getElementById('sheetContent');
-  content.innerHTML = `
-    <div class="sheet-inner">
-      <div class="center-spinner">
-        <div class="spinner spinner-blue"></div>
-        Memuat data...
-      </div>
-    </div>`;
+  content.innerHTML = skeletonCardsHTML();
   
   try {
     const data = await apiGet({ action: 'getRecord', rowNumber });
