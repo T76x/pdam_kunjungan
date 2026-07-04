@@ -49,8 +49,7 @@
 
   /* ── Screens ── */
   .screen { display: none; min-height: 100vh; }
-  .screen.active { display: flex; flex-direction: column; animation: screenIn .22s ease-out; }
-  @keyframes screenIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  .screen.active { display: flex; flex-direction: column; }
 
   /* ── Splash ── */
   #splash {
@@ -268,28 +267,6 @@
   .info-val { font-size: 16px; color: var(--gray-900); margin-top: 4px; }
   .confirm-question { font-size: 14px; color: var(--gray-500); margin: 16px 0 12px 0; font-weight: 600; }
   .confirm-btns { display:flex; gap: 12px; }
-
-  /* ── Skeleton Loading (Result Card) ── */
-  .skeleton-card {
-    background: white; border-radius: 16px; border: 2px solid var(--gray-100);
-    padding: 28px 32px; box-shadow: var(--shadow-md); margin-top: 24px;
-    animation: slideUp .3s ease; width: 100%;
-  }
-  .skeleton-line {
-    border-radius: 6px;
-    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
-    background-size: 400% 100%;
-    animation: shimmer 1.4s ease infinite;
-  }
-  @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
-  .skeleton-row { display:flex; gap:14px; align-items:flex-start; margin-bottom: 18px; }
-  .skeleton-icon { width:22px; height:22px; border-radius:6px; flex-shrink:0; margin-top:4px; }
-  .skeleton-btns { display:flex; gap:12px; margin-top: 20px; }
-  .skeleton-btns .skeleton-line { flex:1; height: 44px; border-radius: 8px; }
-  @media (prefers-reduced-motion: reduce) {
-    .screen.active { animation: none; }
-    .skeleton-line { animation: none; background: var(--gray-100); }
-  }
 
   /* ── Sheet/Edit Screen ── */
   #sheet { display: none; flex-direction: column; }
@@ -1058,42 +1035,6 @@
           <button class="btn btn-green" id="confirmSesuaiBtn" onclick="onSesuai()">Sesuai</button>
         </div>
       </div>
-
-      <!-- Skeleton loading: tampil saat menunggu hasil pencarian, mengikuti bentuk result-card -->
-      <div class="skeleton-card hidden" id="searchSkeleton">
-        <div class="skeleton-row">
-          <div class="skeleton-line skeleton-icon"></div>
-          <div style="flex:1">
-            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
-            <div class="skeleton-line" style="width:55%;height:16px;"></div>
-          </div>
-        </div>
-        <div class="skeleton-row">
-          <div class="skeleton-line skeleton-icon"></div>
-          <div style="flex:1">
-            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
-            <div class="skeleton-line" style="width:70%;height:16px;"></div>
-          </div>
-        </div>
-        <div class="skeleton-row">
-          <div class="skeleton-line skeleton-icon"></div>
-          <div style="flex:1">
-            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
-            <div class="skeleton-line" style="width:45%;height:16px;"></div>
-          </div>
-        </div>
-        <div class="skeleton-row" style="margin-bottom:0;">
-          <div class="skeleton-line skeleton-icon"></div>
-          <div style="flex:1">
-            <div class="skeleton-line" style="width:70px;height:10px;margin-bottom:8px;"></div>
-            <div class="skeleton-line" style="width:60%;height:16px;"></div>
-          </div>
-        </div>
-        <div class="skeleton-btns">
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line"></div>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -1146,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxVw1ChodR241qMRQeH15Cddl5wUvPNd-s-Gr6ny-GDi5rqmnnWgiS5i9fpfMubOeVU/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbxMYVk_gisVflppbMCohJXr3Qw8qg8ush4POCrudKXZKraAnc6IQa1NxSdkZp1NFa6j/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1822,13 +1763,11 @@ async function doSearch() {
   
   const errEl = document.getElementById('searchError');
   const resEl = document.getElementById('resultCard');
-  const skelEl = document.getElementById('searchSkeleton');
   const btn = document.getElementById('searchBtn');
   const btnTxt = document.getElementById('searchBtnText');
 
   errEl.classList.add('hidden');
   resEl.classList.add('hidden');
-  if (skelEl) skelEl.classList.remove('hidden');
   btn.disabled = true;
   btnTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;"></div>';
 
@@ -1990,6 +1929,79 @@ async function doSearch() {
       }
     }
 
+    // ── BARU: Kunjungan Ulang — IDSR sudah lunas (cek TglBayar & sdhbyr dari Looker) ──
+    if (state.sheetMode !== 'pertama' && data.status === 'sudahLunas') {
+      const recordData = data.record.full || data.record;
+
+      // Result card tetap dimunculkan (poin 3)
+      displaySearchResult(recordData);
+
+      // Tampilkan TGLBAYAR jika ada
+      const tglbayarVal = recordData['TGLBAYAR'] || recordData['TglBayar'] || recordData['tglbayar'] || '';
+      if (tglbayarVal && tglbayarVal.toString().trim() !== '') {
+        displayTglBayarField(tglbayarVal);
+      }
+
+      // Tampilkan warning untuk sudah lunas
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FEF3CD';
+        warningEl.style.color = '#856404';
+        warningEl.style.border = '1px solid #FED66C';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>⚠️ IDSR Sudah Lunas</strong> — Tidak dapat melanjutkan kunjungan ulang untuk pelanggan yang sudah lunas.</span>`;
+        warningEl.classList.remove('hidden');
+      }
+
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'sudahLunas' };
+
+      resEl.classList.remove('hidden');
+
+      // Update badge jenis kunjungan
+      updateVisitTypeBadge();
+      return;
+    }
+
+    // ── BARU: Kunjungan Ulang — IDSR tidak ada di Form Responses tapi ada di Looker
+    // (berarti belum pernah melakukan Kunjungan Pertama) ──
+    if (state.sheetMode !== 'pertama' && data.status === 'belumKunjunganPertama') {
+      const recordData = data.record.full || data.record;
+
+      // Result card tetap dimunculkan (poin 3)
+      displaySearchResult(recordData);
+
+      // Tampilkan warning belum kunjungan pertama
+      const warningEl = document.getElementById('subunitMismatchAlert');
+      if (warningEl) {
+        warningEl.style.background = '#FFF7ED';
+        warningEl.style.color = '#92400E';
+        warningEl.style.border = '1px solid #FCD34D';
+        warningEl.innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span><strong>⚠️ Belum Kunjungan Pertama</strong> — IDSR ini belum pernah dikunjungi. Silakan lakukan <strong>Kunjungan Pertama</strong> terlebih dahulu.</span>`;
+        warningEl.classList.remove('hidden');
+      }
+
+      // Disable tombol sesuai
+      const sesuaiBtn = document.getElementById('confirmSesuaiBtn');
+      if (sesuaiBtn) sesuaiBtn.disabled = true;
+
+      // Simpan status di state untuk digunakan di onSesuai()
+      state.searchResult = { ...data.record, status: 'belumKunjunganPertama' };
+
+      resEl.classList.remove('hidden');
+
+      // Update badge jenis kunjungan
+      updateVisitTypeBadge();
+      return;
+    }
+
     // Jika tidak ada error, lanjut proses normal
     if (!data.success) {
       throw new Error(data.error || 'Pencarian gagal');
@@ -2034,7 +2046,6 @@ async function doSearch() {
     errEl.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> ${e.message}`;
     errEl.classList.remove('hidden');
   } finally {
-    if (skelEl) skelEl.classList.add('hidden');
     btn.disabled = false;
     btnTxt.textContent = 'Cari';
   }
@@ -2173,19 +2184,26 @@ async function onSesuai() {
     }
   }
   
-  // Validasi Kondisi SR dan tglBayar (hanya untuk kunjungan ulang)
+  // Validasi Kondisi SR (hanya untuk kunjungan ulang)
+  // Catatan: Pengecekan status LUNAS untuk kunjungan ulang sudah ditangani
+  // sepenuhnya oleh backend (status 'sudahLunas' dari sheet Looker: TglBayar
+  // & sdhbyr) — TIDAK menggunakan kolom tglBayar dari sheet Form Responses
+  // agar sumber data lunas konsisten hanya dari Looker.
   if (state.sheetMode === 'ulang') {
+    // Jika status sudahLunas (TglBayar terisi & sdhbyr=1 dari Looker), prevent navigation
+    if (state.searchResult.status === 'sudahLunas') {
+      return; // Tidak lanjut ke sheet screen
+    }
+
+    // Jika status belumKunjunganPertama (ada di Looker tapi belum di Form Responses), prevent navigation
+    if (state.searchResult.status === 'belumKunjunganPertama') {
+      return; // Tidak lanjut ke sheet screen
+    }
+
     const kondisiSR = state.searchResult.kondisiSR || '';
-    const tglBayar = state.searchResult.tglBayar || '';
     
     if (kondisiSR.toLowerCase() === 'diamankan') {
       alert('ID tersebut sudah diamankan, Proses dibatalkan');
-      onTidakSesuai();
-      return;
-    }
-    
-    if (tglBayar && tglBayar.toString().trim() !== '') {
-      alert('ID tersebut sudah lunas');
       onTidakSesuai();
       return;
     }
