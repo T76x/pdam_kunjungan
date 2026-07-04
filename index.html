@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbyrkYIWuvTN14xWQX6l6cU-u5ychkOuduovKqkU-U069wsGJ-phbiNagRZZ3YMeE1HV/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbxh02Wce4J6CiV3NCSKgFPfAtlsyMf-NNOzAetMaUy92nGjPGT7WCX6rYGsuKBx3LKw/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -1396,7 +1396,7 @@ async function apiGet(params) {
   // Status "soft" ini bukan error fatal — backend sengaja mengirim success:false
   // agar frontend bisa menampilkan result card beserta warning yang sesuai
   // (mis. IDSR duplikat / sudah lunas / sudah pernah dikunjungi).
-  const softStatuses = ['duplicate', 'sudahLunas', 'sudahDikunjungi'];
+  const softStatuses = ['duplicate', 'sudahLunas', 'sudahDikunjungi', 'belumKunjunganPertama'];
   if (!data.success && !softStatuses.includes(data.status)) {
     throw new Error(data.error || 'Terjadi kesalahan di server.');
   }
