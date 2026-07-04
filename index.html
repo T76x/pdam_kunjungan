@@ -1087,7 +1087,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbxMYVk_gisVflppbMCohJXr3Qw8qg8ush4POCrudKXZKraAnc6IQa1NxSdkZp1NFa6j/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbyrkYIWuvTN14xWQX6l6cU-u5ychkOuduovKqkU-U069wsGJ-phbiNagRZZ3YMeE1HV/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -2080,7 +2080,7 @@ function displaySearchResult(recordData) {
         return '—';
       }
       const pPeriode      = getLookerVal(['ptungg']);
-      const pJmlKunjungan = getLookerVal(['Jml_Kunjungan', 'jml_kunjungan']);
+      const pJmlKunjungan = getLookerVal(['Jml_Kunjungan', 'jml_kunjungan', 'Jml Kunjungan', 'jml kunjungan']);
 
       // Pinalti hanya ditampilkan untuk kunjungan ulang, dengan format "X hari"
       const isUlangVisit = (state.sheetMode || state.visitType || 'ulang') === 'ulang';
