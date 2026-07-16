@@ -1789,6 +1789,15 @@ async function doSearch() {
   btn.disabled = true;
   btnTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;"></div>';
 
+  // FIX: sembunyikan sisa "Tanggal Bayar" dari hasil pencarian sebelumnya.
+  // tglbayarSection dibuat sebagai sibling dari prefillSection (lihat
+  // displayTglBayarField), sehingga tidak ikut ter-reset saat
+  // displaySearchResult() menulis ulang prefillSection.innerHTML. Tanpa
+  // reset ini, nilai Tanggal Bayar dari pencarian IDSR sebelumnya masih
+  // nempel di layar walau IDSR yang dicari sekarang tidak sudahLunas.
+  const tglbayarSectionReset = document.getElementById('tglbayarSection');
+  if (tglbayarSectionReset) tglbayarSectionReset.classList.add('hidden');
+
   try {
     // Jika kunjungan pertama, gunakan endpoint khusus
     let data;
