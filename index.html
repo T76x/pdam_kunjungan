@@ -1127,7 +1127,7 @@ const READONLY_FIELDS_EXACT = new Set([
 ]);
 
 const HIDDEN_FIELDS = new Set([
-  'cekidsr','Score','link','avatar','cinput'
+  'cekidsr','Score','link','avatar','cinput','Kondisi SR.'
 ]);
 
 const URL_DISPLAY_FIELDS  = new Set(['link','avatar']);
@@ -2113,10 +2113,12 @@ function displaySearchResult(recordData) {
       const isUlangVisit = (state.sheetMode || state.visitType || 'ulang') === 'ulang';
       const pPinaltiRaw   = getLookerVal(['pinalti']);
       const pPinalti      = (pPinaltiRaw !== '—') ? (pPinaltiRaw + ' hari') : '—';
+      const pPinaltiNum   = parseFloat(pPinaltiRaw);
+      const pPinaltiColor = (!isNaN(pPinaltiNum) && pPinaltiNum < 0) ? 'var(--red)' : 'var(--gray-800)';
       const pinaltiRowHtml = isUlangVisit ? `
             <div>
               <div style="color:var(--gray-500);margin-bottom:2px;">Pinalti</div>
-              <div style="font-weight:500;color:var(--gray-800);">${pPinalti}</div>
+              <div style="font-weight:500;color:${pPinaltiColor};">${pPinalti}</div>
             </div>` : '';
 
       prefillSection.innerHTML = `
