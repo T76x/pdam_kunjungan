@@ -3033,7 +3033,7 @@ function validateBeforeSave() {
     const kesanggupanVal = getVal('kesanggupan').toLowerCase();
     if (kesanggupanVal === 'bersedia') {
       const allKeys = Object.keys(Object.assign({}, rec, edited));
-      const tglKesanggupanKey = allKeys.find(k => isMax15DaysField(k));
+      const tglKesanggupanKey = allKeys.find(k => isMax14DaysField(k));
       if (!tglKesanggupanKey || !getVal(tglKesanggupanKey)) {
         showToast('Tgl Kesanggupan wajib diisi karena Kesanggupan "Bersedia".', 'error');
         return false;
