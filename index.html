@@ -1105,7 +1105,7 @@
 // ────────────────────────────────────────────────────────────
 // CONFIG
 // ────────────────────────────────────────────────────────────
-const BASE_URL = 'https://script.google.com/macros/s/AKfycbytL9jE0NpPPLeFThQUMTpycgQb-zMtaqBxxomsKdQCMTvbOlXW5DcVHC8RXTTYtI0y/exec';
+const BASE_URL = 'https://script.google.com/macros/s/AKfycbx_h7CRSbWuvqTKcGCciQsSBCWPhOunb46BQb8INDnCGQDHUGglnFJJA-c47RE4frc/exec';
 const GDRIVE_FOLDERS = {
   'Foto Surat':    '1Q1b8NyPpfKnb2NwtnVVNqKtR_4wJ6zFv',
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
@@ -3144,7 +3144,7 @@ async function saveAll() {
     }
     
     const fieldsJson = JSON.stringify(fieldsToSave);
-    await apiGet({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'ulang' });
+    await apiPost({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'ulang' });
 
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
