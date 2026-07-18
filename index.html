@@ -3121,12 +3121,26 @@ async function saveAll() {
   saveTxt.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,.3);border-top-color:white;"></div> Menyimpan...';
 
   try {
-    // ── Kunjungan pertama: record belum ada di server → insert dulu ──
+    // Jika kunjungan pertama, tambahkan email ke fields yang akan disimpan
+    const fieldsToSave = { ...state.edited };
+    if (state.sheetMode === 'pertama' && state.emailForFirstVisit) {
+      fieldsToSave['Email Address'] = state.emailForFirstVisit;
+    }
+
+    let skipUpdateCall = false;
+
+    // ── Kunjungan pertama: record belum ada di server → buat SEKALIGUS lengkap ──
+    // Data prefill (IDSR, Wilayah, dll) DIGABUNG dengan data yang baru diisi user
+    // (Kesanggupan, Kondisi SR, Foto Surat, Foto Kunjungan, dst) dan dikirim dalam
+    // SATU panggilan insertNewRecord (bukan insert-lalu-update terpisah). Ini
+    // menghilangkan celah waktu antara 2 network call di mana baris bisa saja
+    // tercipta dengan data prefill saja dan tidak pernah lengkap (mis. koneksi
+    // putus / aplikasi ditutup persis di antara kedua panggilan).
     if (state.sheetMode === 'pertama' && state._rowNumber === null) {
       const prefillData = state._pendingPrefill || {};
       const insertResp = await apiPost({
-        action: 'insertNewRecord',
-        fields: prefillData,
+        action:    'insertNewRecord',
+        fields:    { ...prefillData, ...fieldsToSave },
         visitType: 'pertama',
       });
       if (!insertResp.success) {
@@ -3135,16 +3149,27 @@ async function saveAll() {
       state._rowNumber = insertResp.rowNumber;
       // Sync rowNumber ke record lokal
       if (state.record) state.record._rowNumber = insertResp.rowNumber;
+      skipUpdateCall = true; // data sudah lengkap tertulis dalam panggilan di atas
     }
 
-    // Jika kunjungan pertama, tambahkan email ke fields yang akan disimpan
-    const fieldsToSave = { ...state.edited };
-    if (state.sheetMode === 'pertama' && state.emailForFirstVisit) {
-      fieldsToSave['Email Address'] = state.emailForFirstVisit;
+    if (!skipUpdateCall) {
+      const fieldsJson    = JSON.stringify(fieldsToSave);
+      const expectedIdsr  = (state.record && (state.record['IDSR'] || state.record['idsr'])) || '';
+      const updResp = await apiPost({
+        action:       'updateRecord',
+        rowNumber:    state._rowNumber,
+        fields:       fieldsJson,
+        visitType:    state.sheetMode || 'ulang',
+        expectedIdsr: expectedIdsr,
+      });
+      // PENTING: jangan asumsikan sukses hanya karena request tidak melempar error jaringan.
+      // Backend bisa mengembalikan {success:false, error:...} (mis. baris bergeser, validasi
+      // gagal, dsb) — kalau ini tidak dicek, aplikasi akan menampilkan toast sukses padahal
+      // data sama sekali tidak tersimpan.
+      if (!updResp || !updResp.success) {
+        throw new Error((updResp && updResp.error) || 'Update gagal tersimpan ke server.');
+      }
     }
-    
-    const fieldsJson = JSON.stringify(fieldsToSave);
-    await apiPost({ action:'updateRecord', rowNumber: state._rowNumber, fields: fieldsJson, visitType: state.sheetMode || 'ulang' });
 
     for (const [k, v] of Object.entries(fieldsToSave)) {
       state.record[k] = v;
