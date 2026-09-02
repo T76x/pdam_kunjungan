@@ -1136,8 +1136,8 @@ const PHOTO_UPLOAD_FIELDS = new Set(['Foto Surat','Foto Kunjungan']);
 const DROPDOWN_FIELDS = {
   'kondisi sr': ['Segel', 'Diamankan'],
   'Kondisi SR': ['Segel', 'Diamankan'],
-  'kesanggupan': ['Bersedia', 'Tidak bersedia', 'Belum ketemu'],
-  'Kesanggupan': ['Bersedia', 'Tidak bersedia', 'Belum ketemu'],
+  'kesanggupan': ['Bersedia', 'Tidak Bersedia', 'Belum Ketemu'],
+  'Kesanggupan': ['Bersedia', 'Tidak Bersedia', 'Belum Ketemu'],
 };
 
 const DATE_FIELDS = new Set([
@@ -1183,10 +1183,10 @@ function isDropdown(label) {
     const kesanggupan = kesanggupanRaw.toString().toLowerCase().trim();
 
     if (kesanggupan === 'bersedia') {
-      // Bersedia → tambahkan opsi 'Belum disegel'
-      return ['Segel', 'Diamankan', 'Belum disegel'];
+      // Bersedia → tambahkan opsi 'Blm Segel'
+      return ['Segel', 'Diamankan', 'Blm Segel'];
     } else {
-      // Tidak bersedia / Belum ketemu / belum dipilih → 2 opsi default
+      // Tidak Bersedia / Belum Ketemu / belum dipilih → 2 opsi default
       return ['Segel', 'Diamankan'];
     }
   }
@@ -1221,7 +1221,7 @@ function isTglKesanggupanLocked(label) {
 
 // Cek apakah field Tanggal Segel/Cabut harus dikunci (readonly)
 // Pada kunjungan pertama & ulang: HANYA terbuka jika Kondisi SR = "Segel" atau "Diamankan"
-// Jika belum dipilih, kosong, atau "Belum disegel" maka terkunci
+// Jika belum dipilih, kosong, atau "Blm Segel" maka terkunci
 function isSegelDateLocked(label) {
   if (!isSegelDateField(label)) return false;
   const kondisiVal =
@@ -3052,12 +3052,12 @@ function validateBeforeSave() {
     }
   }
 
-  // ── Poin 1: Kunjungan Ulang — jika Kesanggupan sebelumnya "Belum ketemu", wajib isi Kondisi SR ──
+  // ── Poin 1: Kunjungan Ulang — jika Kesanggupan sebelumnya "Belum Ketemu", wajib isi Kondisi SR ──
   if (state.sheetMode === 'ulang') {
     const kesanggupanSebelumnya = (rec['Kesanggupan'] ?? rec['kesanggupan'] ?? '').toString().toLowerCase().trim();
     if (kesanggupanSebelumnya === 'belum ketemu') {
       if (!getVal('kondisi sr')) {
-        showToast('Kondisi SR wajib diisi karena data sebelumnya "Belum ketemu".', 'error');
+        showToast('Kondisi SR wajib diisi karena data sebelumnya "Belum Ketemu".', 'error');
         return false;
       }
     }
