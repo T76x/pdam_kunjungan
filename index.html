@@ -1111,6 +1111,13 @@ const GDRIVE_FOLDERS = {
   'Foto Kunjungan': '1VRH2vRzomfmdkYjWkg5AErV7KNKOcv4p',
 };
 
+// ── Versi frontend saat ini. WAJIB dinaikkan manual (mis. tanggal+urutan)
+//    setiap kali men-deploy index.html BARU (ada penambahan/perubahan script)
+//    ATAU setiap kali men-deploy versi baru auto_increment.gs (APP_VERSION di
+//    sana juga harus disamakan). Dipakai untuk deteksi "ada update" setelah
+//    simpan data — lihat checkVersionAndMaybeReload().
+const FRONTEND_APP_VERSION = '2026.09.15-1';
+
 const GDRIVE_FOLDER_LABELS = {
   'Foto Surat':    'Folder: Foto Surat',
   'Foto Kunjungan': 'Folder: Foto Kunjungan',
@@ -1290,7 +1297,7 @@ function getFolderLabelForField(label) {
 }
 const FIELD_CONFIG_PERTAMA = {
   required: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'FOTO SURAT', 'FOTO KUNJUNGAN'],
-  editable: ['KESANGGUPAN', 'TGL KESANGGUPAN', 'KONDISI SR', 'TANGGAL SEGEL/CABUT', 'CATATAN', 'FOTO SURAT', 'FOTO KUNJUNGAN']
+  editable: ['Kesanggupan', 'Tgl Kesanggupan', 'Kondisi SR', 'Tanggal Segel/Cabut', 'Catatan', 'Foto Surat', 'Foto Kunjungan']
 };
 
 // State
@@ -1313,6 +1320,7 @@ let state = {
   emailList: [],  // kept for compatibility
   _pendingPrefill: null, // data prefill kunjungan pertama yang belum diunggah ke server
   _googleUser: null,     // cached Google user info within session
+  _clientReqId: null,    // ID unik per percobaan simpan, tetap sama saat retry (anti double-post)
 };
 
 // ────────────────────────────────────────────────────────────
@@ -1403,6 +1411,15 @@ function goBack() {
 // ────────────────────────────────────────────────────────────
 // API
 // ────────────────────────────────────────────────────────────
+// ID unik per percobaan simpan. Dibuat SEKALI saat record/prefill dimuat,
+// lalu tetap dipakai ulang kalau "Simpan" ditekan lagi setelah gagal
+// (retry) — supaya server bisa mengenali retry dan tidak membuat baris
+// atau hitungan kunjungan dobel kalau permintaan sebelumnya sebenarnya
+// sudah berhasil (mis. muncul "Load failed" tapi server sudah selesai).
+function genReqId() {
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+}
+
 async function apiGet(params) {
   if (state.token) params.token = state.token;
   if (state.userEmail) params.userEmail = state.userEmail;
@@ -1502,7 +1519,7 @@ async function doLogin() {
 
 function doLogout() {
   sessionStorage.clear();
-  state = { token:null, userEmail:null, userName:null, userSubUnit:null, searchResult:null, record:null, edited:{}, saving:false, sheetMode:null, visitType:null, modalField:null, photoFile:null, photoUploadedUrl:null, _rowNumber:null, emailForFirstVisit:null, emailList:[], _pendingPrefill:null, _googleUser:null };
+  state = { token:null, userEmail:null, userName:null, userSubUnit:null, searchResult:null, record:null, edited:{}, saving:false, sheetMode:null, visitType:null, modalField:null, photoFile:null, photoUploadedUrl:null, _rowNumber:null, emailForFirstVisit:null, emailList:[], _pendingPrefill:null, _googleUser:null, _clientReqId:null };
   document.getElementById('userDropdown').classList.add('hidden');
   toggleClearBtn();
   document.getElementById('searchInput').value = '';
@@ -2262,6 +2279,7 @@ async function onSesuai() {
       // Tandai bahwa ini record baru yang belum disimpan ke server
       state._rowNumber = null;
       state._pendingPrefill = prefillData;
+      state._clientReqId = genReqId();
       state.edited = {};
 
       // ── Ambil semua header Form Responses dari GAS (hanya untuk tampilan) ──
@@ -2347,6 +2365,7 @@ async function loadRecord(rowNumber) {
     const data = await apiGet({ action: 'getRecord', rowNumber });
     state.record = data.record;
     state._rowNumber = rowNumber;
+    state._clientReqId = genReqId();
     
     // Pre-fill data dari sheet Looker untuk kunjungan pertama
     if (state.sheetMode === 'pertama' && state.searchResult) {
@@ -3108,6 +3127,57 @@ function confirmSaveChanges() {
   saveAll();
 }
 
+// ── Clear cache setelah proses simpan (baik kunjungan pertama maupun ulang) ──
+// Dipanggil SETELAH data berhasil tersimpan ke Google Sheets, SEBELUM kembali
+// ke halaman pencarian IDSR. Tidak menyentuh sessionStorage (idsr_token, dll)
+// supaya user tidak ter-logout setiap kali simpan data.
+async function clearAppCache() {
+  try {
+    if (window.caches && typeof caches.keys === 'function') {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (e) {
+    console.warn('[clearAppCache] Gagal membersihkan Cache Storage:', e.message);
+  }
+
+  try {
+    if (window.localStorage) {
+      Object.keys(localStorage)
+        .filter(k => /idsr|search|cache/i.test(k))
+        .forEach(k => localStorage.removeItem(k));
+    }
+  } catch (e) {
+    console.warn('[clearAppCache] Gagal membersihkan localStorage:', e.message);
+  }
+}
+
+// ── Deteksi update aplikasi (frontend/backend) & reload otomatis di safe point ──
+// Dipanggil setelah simpan berhasil, dengan membaca `appVersion` yang dikirim
+// balik oleh backend (auto_increment.gs) pada SETIAP response API. Kalau
+// berbeda dari FRONTEND_APP_VERSION yang sedang berjalan di tab ini, berarti
+// developer baru saja deploy versi baru (frontend dan/atau backend) —
+// paksa reload halaman supaya tab ini pindah ke kode terbaru, TANPA
+// menunggu user menutup halaman sendiri. sessionStorage (token login) tetap
+// utuh setelah reload karena reload tidak menghapus sessionStorage tab yang sama.
+// Return: true jika reload dipicu (caller sebaiknya hentikan flow lanjutan).
+function checkVersionAndMaybeReload(apiResponse) {
+  try {
+    const serverVersion = apiResponse && apiResponse.appVersion;
+    if (!serverVersion) return false; // backend lama yang belum kirim appVersion, abaikan
+    if (serverVersion === FRONTEND_APP_VERSION) return false;
+
+    showToast('Versi baru aplikasi terdeteksi, memuat ulang...', 'success');
+    setTimeout(() => {
+      window.location.href = window.location.pathname + '?_v=' + Date.now() + window.location.hash;
+    }, 1200);
+    return true;
+  } catch (e) {
+    console.warn('[checkVersionAndMaybeReload] Gagal cek versi:', e.message);
+    return false;
+  }
+}
+
 async function saveAll() {
   if (!Object.keys(state.edited).length || state.saving) return;
 
@@ -3128,6 +3198,7 @@ async function saveAll() {
     }
 
     let skipUpdateCall = false;
+    let lastSaveResp = null; // dipakai untuk cek appVersion dari backend setelah simpan
 
     // ── Kunjungan pertama: record belum ada di server → buat SEKALIGUS lengkap ──
     // Data prefill (IDSR, Wilayah, dll) DIGABUNG dengan data yang baru diisi user
@@ -3139,9 +3210,10 @@ async function saveAll() {
     if (state.sheetMode === 'pertama' && state._rowNumber === null) {
       const prefillData = state._pendingPrefill || {};
       const insertResp = await apiPost({
-        action:    'insertNewRecord',
-        fields:    { ...prefillData, ...fieldsToSave },
-        visitType: 'pertama',
+        action:      'insertNewRecord',
+        fields:      { ...prefillData, ...fieldsToSave },
+        visitType:   'pertama',
+        clientReqId: state._clientReqId,
       });
       if (!insertResp.success) {
         throw new Error(insertResp.error || 'Gagal membuat record baru di server');
@@ -3150,6 +3222,7 @@ async function saveAll() {
       // Sync rowNumber ke record lokal
       if (state.record) state.record._rowNumber = insertResp.rowNumber;
       skipUpdateCall = true; // data sudah lengkap tertulis dalam panggilan di atas
+      lastSaveResp = insertResp;
     }
 
     if (!skipUpdateCall) {
@@ -3161,6 +3234,7 @@ async function saveAll() {
         fields:       fieldsJson,
         visitType:    state.sheetMode || 'ulang',
         expectedIdsr: expectedIdsr,
+        clientReqId:  state._clientReqId,
       });
       // PENTING: jangan asumsikan sukses hanya karena request tidak melempar error jaringan.
       // Backend bisa mengembalikan {success:false, error:...} (mis. baris bergeser, validasi
@@ -3169,6 +3243,7 @@ async function saveAll() {
       if (!updResp || !updResp.success) {
         throw new Error((updResp && updResp.error) || 'Update gagal tersimpan ke server.');
       }
+      lastSaveResp = updResp;
     }
 
     for (const [k, v] of Object.entries(fieldsToSave)) {
@@ -3177,8 +3252,17 @@ async function saveAll() {
     state.record['Timestamp'] = formatNow();
     state.edited = {};
     state._pendingPrefill = null;
+    state._clientReqId = null;
 
     showToast('Data berhasil disimpan ke Google Sheets', 'success');
+
+    // Clear cache setelah data tersimpan, sebelum kembali ke halaman pencarian IDSR
+    await clearAppCache();
+
+    // Kalau ada versi baru (frontend dan/atau backend) yang sudah di-deploy developer,
+    // reload halaman sekarang (safe point: tidak ada data yang belum tersimpan)
+    // alih-alih lanjut ke layar pencarian dengan kode lama.
+    if (checkVersionAndMaybeReload(lastSaveResp)) return;
 
     // Setelah simpan berhasil, kembali ke screen pencarian dan reset search box
     setTimeout(() => {
